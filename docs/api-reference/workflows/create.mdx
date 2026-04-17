@@ -1,0 +1,108 @@
+---
+title: "Create Workflow"
+description: "Create a multi-step automation workflow."
+api: "POST /api/v1/workflows"
+---
+
+Create a workflow that chains AI tasks together with scheduling, event triggers, and conditional logic.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Human-readable workflow name.
+</ParamField>
+
+<ParamField body="triggerType" type="string" required>
+  How the workflow is triggered. One of: `schedule`, `event`, `manual`.
+</ParamField>
+
+<ParamField body="triggerConfig" type="object">
+  Trigger-specific configuration (e.g., `{ "cron": "0 9 * * 1" }` for schedule triggers).
+</ParamField>
+
+<ParamField body="steps" type="object[]" required>
+  Ordered array of workflow steps. At least one step is required.
+
+  <Expandable title="Step object">
+    <ParamField body="type" type="string" required>Step type (e.g., `"ai_transform"`, `"notification"`, `"http"`).</ParamField>
+    <ParamField body="name" type="string" required>Step name.</ParamField>
+    <ParamField body="config" type="object" required>Step-specific configuration.</ParamField>
+    <ParamField body="onSuccess" type="integer">Index of the next step on success.</ParamField>
+    <ParamField body="onFailure" type="integer">Index of the next step on failure.</ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="enabled" type="boolean" default="true">
+  Whether the workflow is active.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/workflows \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Weekly Pipeline Report",
+    "triggerType": "schedule",
+    "triggerConfig": { "cron": "0 9 * * 1" },
+    "steps": [
+      {
+        "type": "ai_transform",
+        "name": "Generate report",
+        "config": { "prompt": "Analyze this week's pipeline changes", "skills": ["data-extraction"] }
+      },
+      {
+        "type": "notification",
+        "name": "Send to team",
+        "config": { "channel": "email", "to": "team@acme.com" }
+      }
+    ]
+  }'
+```
+
+```typescript SDK
+const workflow = await theo.createWorkflow({
+  name: "Weekly Pipeline Report",
+  triggerType: "schedule",
+  triggerConfig: { cron: "0 9 * * 1" },
+  steps: [
+    {
+      type: "ai_transform",
+      name: "Generate report",
+      config: { prompt: "Analyze this week's pipeline changes", skills: ["data-extraction"] },
+    },
+    {
+      type: "notification",
+      name: "Send to team",
+      config: { channel: "email", to: "team@acme.com" },
+    },
+  ],
+});
+```
+
+</CodeGroup>
+
+## Response (HTTP 201)
+
+<ResponseField name="workflow" type="object">
+  The created workflow object with generated `id` and timestamps.
+</ResponseField>
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_fields` | `name`, `triggerType`, and `steps` are required |
+
+## Endpoint
+
+`POST /api/v1/workflows`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

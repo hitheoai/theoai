@@ -1,0 +1,113 @@
+---
+title: "Generate Video"
+description: "Generate video from text prompts (asynchronous)."
+api: "POST /api/v1/video"
+---
+
+Generate video from a text prompt. This is an **asynchronous** endpoint — it returns a job ID immediately (HTTP 202) and the video is generated in the background.
+
+<Warning>
+  Video generation is async. Poll the job status with [Get Job Status](/api-reference/jobs/get) or use `theo.waitForJob()` in the SDK.
+</Warning>
+
+<Note>
+  **AI-disclosure watermark.** Every video returned from Theo carries a small, semi-transparent Theo logo in the bottom-right corner. This is a provenance signal that identifies the clip as AI-generated and is always applied (regardless of any branding preference). Expect +2–15 seconds of re-encode latency per clip.
+</Note>
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="prompt" type="string" required>
+  Text description of the video to generate.
+</ParamField>
+
+<ParamField body="duration" type="string">
+  Target video duration (e.g., `"5s"`, `"10s"`, `"15s"`).
+</ParamField>
+
+<ParamField body="style" type="string">
+  Visual style (e.g., `"cinematic"`, `"animation"`, `"timelapse"`).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/video \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "A 5-second animation of a rocket launch",
+    "duration": "5s",
+    "style": "cinematic"
+  }'
+```
+
+```typescript SDK
+const job = await theo.video({
+  prompt: "A 5-second animation of a rocket launch",
+  duration: "5s",
+  style: "cinematic",
+});
+
+// Poll until complete
+const result = await theo.waitForJob(job.job_id);
+console.log(result.result); // Video URL
+```
+
+</CodeGroup>
+
+## Response (HTTP 202)
+
+<ResponseField name="id" type="string">
+  Unique video request ID (prefixed `vid_`).
+</ResponseField>
+
+<ResponseField name="job_id" type="string">
+  Job ID for polling status.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Always `"queued"` on creation.
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="poll_url" type="string">
+  Relative URL to poll for job status (e.g., `/api/v1/jobs/{job_id}`).
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "vid_abc123",
+  "job_id": "job_xyz789",
+  "status": "queued",
+  "created": "2026-04-10T12:00:00Z",
+  "poll_url": "/api/v1/jobs/job_xyz789"
+}
+```
+
+## Polling for Results
+
+Use the [Get Job Status](/api-reference/jobs/get) endpoint to check progress. When `status` is `"completed"`, the `result` field contains the video URL.
+
+```bash
+curl https://hitheo.ai/api/v1/jobs/job_xyz789 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_prompt` | `prompt` is required |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 503 | `queue_unavailable` | Video generation queue is not available — retry later |

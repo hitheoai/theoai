@@ -1,0 +1,127 @@
+First, set your API key as an environment variable:
+
+```bash
+export THEO_API_KEY=theo_sk_...
+```
+
+Then pick your IDE:
+
+<Tabs>
+  <Tab title="Cursor">
+    Add to `.cursor/mcp.json` in your project root:
+
+    ```json
+    {
+      "mcpServers": {
+        "theo": {
+          "command": "npx",
+          "args": ["-y", "@hitheo/mcp"],
+          "env": {
+            "THEO_API_KEY": "${env:THEO_API_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+    Or run:
+
+    ```bash
+    theo mcp install --ide cursor
+    ```
+  </Tab>
+  <Tab title="Claude Code">
+    Run this in your terminal:
+
+    ```bash
+    claude mcp add theo npx -y @hitheo/mcp
+    ```
+
+    Or run:
+
+    ```bash
+    theo mcp install --ide claude-code
+    ```
+  </Tab>
+  <Tab title="Warp">
+    Add to `.warp/mcp.json` in your project root:
+
+    ```json
+    {
+      "mcpServers": {
+        "theo": {
+          "command": "npx",
+          "args": ["-y", "@hitheo/mcp"],
+          "env": {
+            "THEO_API_KEY": "${env:THEO_API_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+    Or run:
+
+    ```bash
+    theo mcp install --ide warp
+    ```
+  </Tab>
+  <Tab title="Windsurf">
+    Add to `~/.codeium/windsurf/mcp_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "theo": {
+          "command": "npx",
+          "args": ["-y", "@hitheo/mcp"],
+          "env": {
+            "THEO_API_KEY": "${env:THEO_API_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+    Or run:
+
+    ```bash
+    theo mcp install --ide windsurf
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    Add to `.vscode/mcp.json` in your project root:
+
+    ```json
+    {
+      "mcpServers": {
+        "theo": {
+          "command": "npx",
+          "args": ["-y", "@hitheo/mcp"],
+          "env": {
+            "THEO_API_KEY": "${env:THEO_API_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+    Or run:
+
+    ```bash
+    theo mcp install --ide vscode
+    ```
+  </Tab>
+  <Tab title="All IDEs">
+    Auto-detect and configure all installed IDEs at once:
+
+    ```bash
+    npm install -g @hitheo/sdk
+    theo init
+    ```
+
+    This detects Cursor, Claude Code, Warp, Windsurf, and VS Code, writes the correct config for each, and creates a `theo.config.json` for project-level settings.
+  </Tab>
+</Tabs>
+
+Restart your IDE after adding the config.

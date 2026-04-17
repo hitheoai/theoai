@@ -1,0 +1,61 @@
+---
+title: "Semantic Caching"
+description: "How Theo caches responses to reduce cost and latency."
+---
+
+Theo caches completion responses semantically. Identical requests (same prompt, mode, skills, and tools) return cached results instantly at zero cost.
+
+## How It Works
+
+1. Theo generates a deterministic cache key from the request parameters (prompt, mode, skills, tools)
+2. Checks the server-side cache for a matching entry
+3. **On hit**: returns the cached response immediately — zero cost, sub-10ms latency
+4. **On miss**: runs the full orchestration pipeline, caches the result, and returns it
+
+Cached responses include `"_cached": true` in the response body so you can detect cache hits.
+
+## Cache Key Computation
+
+The cache key is a deterministic hash of:
+- **Prompt text** (exact match)
+- **Mode** (`auto`, `fast`, `think`, etc.)
+- Active **skill slugs**
+- Inline **tool definitions**
+
+<Note>
+  Requests with a `conversation_id` are never cached, since they depend on conversation history that changes between calls.
+</Note>
+
+## TTL Behavior
+
+Cache entries expire automatically based on the content type:
+
+| Mode | Typical TTL |
+|------|------------|
+| `fast` / `auto` | Minutes |
+| `think` / `code` | Minutes to hours |
+| `research` | Not cached (async job) |
+| `image` / `video` | Not cached (generative) |
+
+TTLs are managed server-side and optimized for freshness vs. cost savings.
+
+## Cache Scope
+
+- Cache is **per-user** — your cached responses are not shared with other accounts
+- Cache is **per-key** scoped when org-level keys are used
+
+## Detecting Cache Hits
+
+```typescript
+const res = await theo.complete({ prompt: "What is DNS?" });
+
+if ((res as any)._cached) {
+  console.log("Cache hit! Cost: 0");
+} else {
+  console.log(`Cache miss. Cost: ${res.usage.cost_cents}¢`);
+}
+```
+
+## Cost Impact
+
+For applications with repetitive queries (chatbots, dashboards, classification), semantic caching can reduce costs by 30–60%. Monitor your cache hit rate in the [Usage Dashboard](/dashboard/usage-analytics).

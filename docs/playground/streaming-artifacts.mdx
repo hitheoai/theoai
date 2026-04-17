@@ -1,0 +1,35 @@
+---
+title: "Streaming & Artifacts"
+description: "Real-time streaming and artifact preview in the Playground."
+---
+
+## Streaming
+
+The Playground streams responses token-by-token using Server-Sent Events (SSE). As the response is generated:
+
+- **Tokens** appear in real-time as they're produced
+- **Tool calls** are displayed inline with their name and status (`success` / `error`)
+- **Model info** shows which Theo engine was selected and the resolved mode
+- **Cost** updates in real-time as tokens are consumed
+
+### Event Types
+
+The streaming display corresponds to the SSE event types from the API:
+
+| Event | What You See |
+|-------|--------------|
+| `meta` | Model name, resolved mode, active skills |
+| `token` | Text appearing character by character |
+| `tool` | Tool call badge with status |
+| `artifact` | Preview card for generated files |
+| `done` | Final cost, token count, follow-up suggestions |
+
+## Artifacts
+
+Generated files (images, code, documents) are displayed as interactive preview cards:
+
+- **Images** — inline preview with full-resolution download link
+- **Code** — syntax-highlighted with copy button and language detection
+- **Documents** — download link with format badge (PDF, DOCX, PPTX, XLSX, CSV)
+
+Artifacts are hosted on `artifacts.hitheo.ai` and the download URLs are presigned for secure access.

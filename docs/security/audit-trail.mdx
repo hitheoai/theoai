@@ -1,0 +1,37 @@
+---
+title: "Audit Trail"
+description: "Immutable logging of all API activity."
+---
+
+Every API request is logged to an immutable audit trail. Audit records cannot be modified or deleted.
+
+## What's Logged
+
+| Field | Description |
+|-------|-------------|
+| **Endpoint** | API route and method |
+| **Identity** | API key ID (not the key itself) and user ID |
+| **Timestamp** | ISO 8601 UTC timestamp |
+| **Result** | HTTP status code, engine used, cost in credits |
+| **Context** | SHA-256 prompt hash (not the raw prompt), active skill IDs, tool calls made |
+| **Request ID** | Unique identifier for cross-referencing |
+
+<Note>
+  Raw prompts are never stored in the audit trail. Only a SHA-256 hash of the prompt is recorded, along with the prompt length and mode. This ensures auditability without exposing sensitive content.
+</Note>
+
+## Access
+
+```bash
+curl https://hitheo.ai/api/v1/audit \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Returns paginated audit events. Supports filtering by date range, API key, mode, and status code.
+
+## Use Cases
+
+- **Cost tracking** — see exactly which requests consumed credits
+- **Debugging** — trace a request through the pipeline using the request ID
+- **Compliance** — demonstrate access controls and data handling to auditors
+- **Anomaly detection** — identify unusual usage patterns or unauthorized access attempts

@@ -1,0 +1,48 @@
+---
+title: "List Iframe Widgets"
+api: "GET /api/v1/iframes"
+description: "List all embeddable widget configurations for the authenticated user."
+---
+
+## Response
+
+<ResponseField name="configs" type="array">
+  Array of iframe configurations. Each includes `id`, `name`, `status`, `api_key_id`, `appearance`, `behavior`, `security`, `created_at`, `updated_at`.
+</ResponseField>
+
+## Authentication
+
+Requires a dashboard session.
+
+## Example
+
+```bash curl
+curl https://hitheo.ai/api/v1/iframes \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "configs": [
+    {
+      "id": "cfg_abc123",
+      "name": "Support Widget",
+      "status": "active",
+      "api_key_id": "key_abc123",
+      "appearance": { "primaryColor": "#715eac" },
+      "behavior": { "welcomeMessage": "Hi! How can I help?" },
+      "created_at": "2026-04-15T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+## Management
+
+- `PATCH /api/v1/iframes/{id}` — Update config
+- `DELETE /api/v1/iframes/{id}` — Remove
+- `POST /api/v1/iframes/{id}/duplicate` — Clone a config
+- `POST /api/v1/iframes/{id}/preview-token` — Generate preview token
+- `POST /api/v1/iframes/{id}/verify` — Verify domain ownership

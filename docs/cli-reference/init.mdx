@@ -1,0 +1,60 @@
+---
+title: "theo init"
+description: "Initialize Theo in a project — creates config, detects IDEs, writes MCP configs."
+---
+
+```bash
+theo init [directory]
+```
+
+`theo init` sets up Theo in your project by:
+
+1. **Creating `theo.config.json`** — project-level config with persona, skills, and default mode
+2. **Detecting installed IDEs** — Cursor, Claude Code, Warp, Windsurf, VS Code
+3. **Writing MCP configs** — correct JSON for each detected IDE
+4. **Generating `.theo/RULES.md`** — context file so IDE agents know how to use Theo
+
+## Example
+
+```bash
+$ theo init
+[theo] Initializing Theo in this project...
+
+[theo]   ✓ Created theo.config.json
+
+[theo] Detecting IDEs...
+[theo]   Found: Cursor, Warp
+
+[theo] Writing MCP configurations...
+[theo]   ✓ Cursor: .cursor/mcp.json
+[theo]   ✓ Warp: .warp/mcp.json
+
+[theo] Generating agent context...
+[theo]   ✓ Created .theo/RULES.md
+
+[theo] ✅ Theo initialized!
+```
+
+## What It Creates
+
+### theo.config.json
+```json
+{
+  "persona": "You are an AI assistant for the my-project project.",
+  "skills": [],
+  "defaultMode": "auto"
+}
+```
+
+### MCP Config (per IDE)
+```json
+{
+  "mcpServers": {
+    "theo": {
+      "command": "npx",
+      "args": ["-y", "@hitheo/mcp"],
+      "env": { "THEO_API_KEY": "${env:THEO_API_KEY}" }
+    }
+  }
+}
+```

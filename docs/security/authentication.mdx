@@ -1,0 +1,54 @@
+---
+title: "Authentication"
+description: "API key security, dashboard auth, and best practices."
+---
+
+All API requests are authenticated via Bearer tokens (`theo_sk_...` keys).
+
+## API Key Security
+
+- **Hashed at rest** — keys are SHA-256 hashed before storage. We cannot recover a lost key; you must generate a new one.
+- **Prefixed for identification** — all keys use the `theo_sk_` prefix.
+- **Scoped permissions** — each key can be scoped to specific API capabilities (completions, skills, tools, connectors, billing).
+- **Per-key rate limits** — rate limits are enforced per key based on your plan tier.
+- **Instant revocation** — revoke any key immediately from the dashboard or API. Revoked keys are rejected within seconds.
+- **Key rotation** — roll keys with a configurable grace period where both old and new keys work simultaneously.
+
+## Key Rotation
+
+We recommend rotating API keys regularly:
+
+1. Create a new key in the dashboard
+2. Update your environment variables / secrets manager
+3. Verify traffic is flowing through the new key
+4. Revoke the old key
+
+Both keys work simultaneously during the transition — there is no downtime.
+
+## Dashboard Authentication
+
+The web dashboard supports email/password, social login, and optional multi-factor authentication (MFA). Session tokens are short-lived and scoped to the authenticated session.
+
+## Transport Security
+
+- All API traffic is encrypted via **TLS 1.2+**
+- HSTS is enforced on all Theo domains
+- Certificate transparency logs are monitored
+
+## Supply Chain: Verifying npm Packages
+
+Every official Theo npm package (`@hitheo/sdk`, `@hitheo/mcp`, `@hitheo/telegram`, `@hitheo/whatsapp`) is published with **npm provenance** starting with version `0.1.4`. Each tarball carries a cryptographically signed attestation linking the release back to the exact public CI workflow + git commit that produced it.
+
+To verify before installing:
+
+```bash
+npm audit signatures @hitheo/sdk @hitheo/mcp @hitheo/telegram @hitheo/whatsapp
+```
+
+You can also inspect an individual release's attestation URL:
+
+```bash
+npm view @hitheo/sdk@latest dist.attestations
+```
+
+The attestation confirms that each tarball was built by the official Theo publish pipeline and was not substituted at any point before reaching the npm registry.

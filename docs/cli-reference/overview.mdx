@@ -1,0 +1,38 @@
+---
+title: "CLI Overview"
+description: "The Theo CLI — project setup, MCP configuration, and skill management."
+---
+
+The `theo` CLI is included in the `@hitheo/sdk` package.
+
+## Install
+
+```bash
+npm install -g @hitheo/sdk
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `theo init` | Initialize Theo in a project (config + MCP + IDE detection) |
+| `theo login` | Authenticate and store API key |
+| `theo mcp install` | Configure MCP for detected/specified IDEs |
+| `theo status` | Check connection and health |
+| `theo complete "<prompt>"` | Quick AI completion from terminal |
+| `theo skill init` | Scaffold a new skill project |
+| `theo skill validate` | Validate a `theo-skill.json` manifest |
+| `theo skill publish` | Submit skill to marketplace |
+
+## Quick Start
+
+```bash
+# Set up Theo in your project
+theo init
+
+# Check connection
+theo status
+
+# Quick completion
+theo complete "Write a function to reverse a string"
+```

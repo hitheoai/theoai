@@ -1,0 +1,53 @@
+---
+title: "Skill Versions"
+description: "Get version history for a published skill."
+api: "GET /api/v1/skills/{id}/versions"
+---
+
+Retrieve the version history for a published skill, including manifest snapshots and changelogs.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The skill UUID.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/skills/skill_abc123/versions \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const versions = await theo.skillVersions("skill_abc123");
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="versions" type="object[]">
+  Array of version records.
+
+  <Expandable title="Version object">
+    <ResponseField name="id" type="string">Version record ID.</ResponseField>
+    <ResponseField name="version" type="string">Semver version string.</ResponseField>
+    <ResponseField name="status" type="string">`"active"`, `"superseded"`, or `"withdrawn"`.</ResponseField>
+    <ResponseField name="changelog" type="string | null">Markdown changelog for this version.</ResponseField>
+    <ResponseField name="manifestSnapshot" type="object">Full manifest at time of publication.</ResponseField>
+    <ResponseField name="createdAt" type="string">ISO 8601 timestamp.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Endpoint
+
+`GET /api/v1/skills/{id}/versions`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

@@ -1,0 +1,47 @@
+---
+title: "API Keys"
+description: "Create and manage API keys from the dashboard."
+---
+
+Navigate to **API Keys** in the dashboard sidebar to manage your keys.
+
+## Create a Key
+
+1. Click **Create Key**
+2. Enter a name (e.g., "Production", "Development")
+3. Optionally set **scopes** to restrict what the key can access (e.g., completions only)
+4. Optionally set **rate limits** and **spending caps** for this specific key
+5. Copy the key — **it won't be shown again**
+
+<Warning>
+  Store API keys securely. Use environment variables or a secrets manager. Never commit keys to source control.
+</Warning>
+
+## Key Formats
+
+| Prefix | Environment | Billing |
+|--------|-------------|--------|
+| `theo_sk_live_` | Production | Billed per token |
+| `theo_sk_test_` | Sandbox | No billing, lower rate limits |
+
+## Key Management
+
+- **Revoke** — instantly disable a key (takes effect within seconds)
+- **Rename** — update the display name
+- **View usage** — see per-key usage statistics, cost, and request counts
+- **Edit limits** — adjust rate limits and spending caps per key
+
+## Key Rotation
+
+To rotate a key without downtime:
+
+1. Create a new key
+2. Update your environment variables
+3. Verify traffic flows through the new key
+4. Revoke the old key
+
+Both keys work simultaneously during the transition.
+
+## Programmatic Key Management
+
+You can also create keys via the API: [Create API Key](/api-reference/keys/create).

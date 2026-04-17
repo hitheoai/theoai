@@ -1,0 +1,115 @@
+---
+title: "How Theo Thinks"
+description: "The multi-stage orchestration pipeline behind every API call."
+---
+
+Every time you call `POST /api/v1/completions`, Theo runs a multi-stage orchestration pipeline — not a single model call. You send one request, and Theo handles classification, routing, skill injection, tool execution, fallback, and billing automatically.
+
+## The Pipeline
+
+```
+Your prompt
+  │
+  ▼
+┌─────────────────────┐
+│  Intent Classifier   │  ← Determines the best execution mode
+│  Determines: mode,   │
+│  confidence, tools   │
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  Skill Loader        │  ← Loads installed skills + per-request skill slugs
+│  Merges: prompts,    │
+│  tools, engine prefs │
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  Engine Router       │  ← Selects the optimal Theo engine
+│  Checks: availability│     Falls back automatically if primary is down
+│  + failover          │
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  Agent Loop          │  ← Think → act → observe, iterates until done
+│  Calls tools, feeds  │
+│  results back in     │
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  Response            │  ← Formatted, billed, cached, audited
+└─────────────────────┘
+```
+
+## Stage 1: Intent Classification
+
+When you send `mode: "auto"` (the default), Theo classifies your prompt to determine the best execution mode.
+
+Theo uses a multi-tier classification system that combines fast heuristics with AI-powered analysis to accurately route your request. Obvious signals (e.g., "Draw me a logo" → `image`) are detected instantly. Ambiguous prompts are analyzed more deeply.
+
+**Override:**
+If you pass `mode: "code"` explicitly, classification is skipped entirely.
+
+The resolved mode determines which Theo engine handles the request, what system prompt is used, and which follow-up suggestions are offered.
+
+## Stage 2: Skill Loading
+
+Skills are loaded from two sources:
+
+1. **Installed skills** — persistent skills loaded on every request
+2. **Per-request skills** — skill slugs passed in the `skills[]` array, loaded on-demand
+
+Each loaded skill contributes:
+- **System prompt extension** — domain-specific instructions injected into the context
+- **Tool definitions** — callable actions the engine can invoke
+- **Engine preference** — the skill can recommend which Theo engine handles its tasks best
+
+All skill prompts are aggregated and sandboxed so they don't interfere with each other.
+
+## Stage 3: Engine Routing
+
+Theo selects the optimal engine based on the resolved mode:
+
+|| Mode | Engine | Description |
+||------|--------|-------------|
+|| fast / auto | `theo-1-flash` | Fast, lightweight completions |
+|| think | `theo-1-reason` | Deep reasoning and analysis |
+|| code | `theo-1-code` | Production-quality code generation |
+|| image | `theo-1-create` | Image generation |
+|| video | `theo-1-motion` | Video generation |
+|| research | `theo-1-research` | Multi-step web research |
+|| roast | `theo-1-edge` | Unfiltered humor |
+|| genui | `theo-1-genui` | Generative UI components |
+
+If the primary engine is unavailable, Theo automatically fails over to a backup — you never see a broken response.
+
+## Stage 4: Agent Loop
+
+For requests with available tools, Theo enters an iterative agent loop:
+
+```
+Iteration 0: Engine reads prompt + system prompt + tool definitions
+             → Responds with text AND a tool call
+             → Theo executes the tool, gets result
+
+Iteration 1: Engine reads the tool result + previous context
+             → Responds with text (no more tool calls)
+             → Final response returned to caller
+```
+
+The loop continues until the task is complete or the iteration limit is reached. For simple prompts with no tools, the loop collapses to a single call — no overhead.
+
+## Stage 5: Response
+
+The final response includes:
+- `content` — the generated text
+- `model` — which Theo engine handled it (e.g., `theo-1-reason`)
+- `tools_used` — which tools were called and their status
+- `artifacts` — any generated files (images, code, documents)
+- `follow_ups` — suggested next prompts
+- `usage` — token counts and cost in cents
+
+The response is also **billed**, **cached** (identical requests return instantly at zero cost), and **audited** (logged to the immutable audit trail).

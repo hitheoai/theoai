@@ -1,0 +1,59 @@
+---
+title: "List Hooks"
+api: "GET /api/v1/hooks"
+description: "List all installed hooks and available hook presets."
+---
+
+## Response
+
+<ResponseField name="hooks" type="array">
+  Array of installed hooks. Each includes `id`, `event_pattern`, `skill_slug`, `enabled`, `cooldown_minutes`, `consecutive_failures`, `last_fired_at`, `created_at`.
+</ResponseField>
+
+<ResponseField name="presets" type="array">
+  Array of available hook presets. Each includes `id`, `event_pattern`, `default_skill`, `description`.
+</ResponseField>
+
+## Authentication
+
+Requires an API key with `completions` scope.
+
+## Example
+
+```bash curl
+curl https://hitheo.ai/api/v1/hooks \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "hooks": [
+    {
+      "id": "a1b2c3d4-...",
+      "event_pattern": "order.*.completed",
+      "skill_slug": "order-processor",
+      "enabled": true,
+      "cooldown_minutes": 5,
+      "consecutive_failures": 0,
+      "last_fired_at": null,
+      "created_at": "2026-04-15T12:00:00.000Z"
+    }
+  ],
+  "presets": [
+    {
+      "id": "share.accepted.welcome",
+      "event_pattern": "share.accepted",
+      "default_skill": "email-drafter",
+      "description": "Welcome on share accept"
+    }
+  ]
+}
+```
+
+## Management
+
+- `PATCH /api/v1/hooks/{id}` — Update config, enable/disable
+- `DELETE /api/v1/hooks/{id}` — Remove
+- `GET /api/v1/hooks/{id}` — View execution history

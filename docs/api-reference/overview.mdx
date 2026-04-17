@@ -1,0 +1,92 @@
+---
+title: "API Reference Overview"
+description: "REST API for AI orchestration — completions, images, video, code, research, documents, skills, and more."
+---
+
+The Theo API is a RESTful JSON API served at `https://hitheo.ai/api/v1/`. All endpoints require authentication via Bearer token except `/health`.
+
+## Base URL
+
+```
+https://hitheo.ai/api/v1/
+```
+
+## Authentication
+
+All requests must include your API key in the `Authorization` header:
+
+```
+Authorization: Bearer theo_sk_...
+```
+
+See [Authentication](/api-reference/authentication) for details.
+
+## OpenAPI Spec
+
+The full OpenAPI 3.1 specification is available at:
+
+```
+https://hitheo.ai/api/v1/openapi.json
+```
+
+You can import this into Postman, Insomnia, or any OpenAPI-compatible tool.
+
+## Endpoints at a Glance
+
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| **Completions** | `POST /completions` | Core AI completions with orchestration pipeline |
+| **Images** | `POST /images` | Image generation (Theo Create) |
+| **Video** | `POST /video` | Video generation (async) |
+| **Code** | `POST /code` | Code generation (Theo Code) |
+| **Research** | `POST /research` | Deep web research (async) |
+| **Documents** | `POST /documents` | PDF, DOCX, PPTX, XLSX, CSV generation |
+| **Audio** | `POST /audio/tts`, `POST /audio/stt` | Text-to-speech and speech-to-text |
+| **Skills** | `GET/POST /skills`, `POST /skills/create`, `POST /skills/submit` | Marketplace and skill management |
+| **Workflows** | `GET/POST /workflows`, `POST /workflows/{id}/run` | Automation workflows |
+| **Models** | `GET /models` | Available engine registry |
+| **Tools** | `GET /tools` | Available tool definitions |
+| **Conversations** | `GET /conversations` | Conversation history |
+| **Channels** | `GET /channels` | Connected channel adapters |
+| **Jobs** | `GET /jobs/{id}` | Async job status polling |
+| **Usage** | `GET /usage` | Usage analytics and cost tracking |
+| **Keys** | `POST /keys` | API key management |
+| **Health** | `GET /health` | System status (public, no auth) |
+
+## Response Format
+
+All responses follow a consistent JSON structure:
+
+```json
+{
+  "id": "resource_id",
+  "object": "resource_type",
+  "created": "2026-04-10T12:00:00Z",
+  ...resource-specific fields
+}
+```
+
+## Errors
+
+Errors return a structured JSON body:
+
+```json
+{
+  "error": {
+    "message": "Invalid API key",
+    "type": "authentication_error",
+    "code": "invalid_api_key",
+    "request_id": "req_abc123"
+  }
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| 400 | Bad request — invalid parameters |
+| 401 | Unauthorized — missing or invalid API key |
+| 403 | Forbidden — insufficient permissions |
+| 404 | Not found |
+| 429 | Rate limited — check `Retry-After` header |
+| 500 | Internal server error |
+| 503 | Service unavailable — check `Retry-After` header |

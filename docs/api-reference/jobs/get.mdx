@@ -1,0 +1,112 @@
+---
+title: "Get Job Status"
+description: "Poll the status of an asynchronous job (video, research, etc.)."
+api: "GET /api/v1/jobs/{id}"
+---
+
+Get the current status of an asynchronous job. Used to poll for results from [Video](/api-reference/video/generate) and [Research](/api-reference/research/create) endpoints.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The job ID returned by the async endpoint (e.g., `job_xyz789`).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/jobs/job_xyz789 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+// Single poll
+const status = await theo.job("job_xyz789");
+console.log(status.status, status.progress);
+
+// Auto-poll until complete (recommended)
+const result = await theo.waitForJob("job_xyz789");
+console.log(result.result);
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Job ID.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Job type (e.g., `"video"`, `"research"`).
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status: `"queued"`, `"active"`, `"completed"`, or `"failed"`.
+</ResponseField>
+
+<ResponseField name="progress" type="number">
+  Progress percentage (0–100).
+</ResponseField>
+
+<ResponseField name="result" type="any | null">
+  The job result. `null` until status is `"completed"`. Contents depend on the job type (e.g., video URL, research report).
+</ResponseField>
+
+<ResponseField name="error" type="string | null">
+  Error message if status is `"failed"`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string | null">
+  When the job was created.
+</ResponseField>
+
+<ResponseField name="completed_at" type="string | null">
+  When the job completed (or failed).
+</ResponseField>
+
+### Example Response (Completed)
+
+```json
+{
+  "id": "job_xyz789",
+  "type": "video",
+  "status": "completed",
+  "progress": 100,
+  "result": "https://artifacts.hitheo.ai/video/xyz789.mp4",
+  "error": null,
+  "created_at": "2026-04-10T12:00:00Z",
+  "completed_at": "2026-04-10T12:01:30Z"
+}
+```
+
+### Example Response (In Progress)
+
+```json
+{
+  "id": "job_xyz789",
+  "type": "research",
+  "status": "active",
+  "progress": 45,
+  "result": null,
+  "error": null,
+  "created_at": "2026-04-10T12:00:00Z",
+  "completed_at": null
+}
+```
+
+<Tip>
+  The SDK's `theo.waitForJob(jobId, intervalMs, maxWaitMs)` polls automatically with configurable interval (default 2s) and timeout (default 5 minutes).
+</Tip>
+
+## Endpoint
+
+`GET /api/v1/jobs/{id}`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

@@ -1,0 +1,97 @@
+---
+title: "Canvases"
+description: "Create, list, update, and delete E.V.I. canvases."
+---
+
+## List Canvases
+
+```http
+GET /api/v1/evi/canvases
+Authorization: Bearer theo_sk_...
+```
+
+Returns up to 50 canvases for the authenticated user, ordered by last updated.
+
+**Response**
+
+```json
+{
+  "canvases": [
+    {
+      "id": "uuid",
+      "name": "My Agent",
+      "description": "A customer service agent",
+      "status": "draft",
+      "graphJson": { "nodes": [], "edges": [] },
+      "compiledManifest": null,
+      "isPublic": false,
+      "publishedSkillId": null,
+      "createdAt": "2026-04-15T00:00:00Z",
+      "updatedAt": "2026-04-15T00:00:00Z"
+    }
+  ]
+}
+```
+
+## Create Canvas
+
+```http
+POST /api/v1/evi/canvases
+Authorization: Bearer theo_sk_...
+Content-Type: application/json
+
+{
+  "name": "My Agent",
+  "description": "Optional description",
+  "graph_json": {
+    "nodes": [],
+    "edges": []
+  }
+}
+```
+
+**Parameters**
+
+- `name` (string, required) — Canvas name (max 128 chars).
+- `description` (string, optional) — Short description (max 500 chars).
+- `graph_json` (object, optional) — Initial graph with `nodes` and `edges` arrays. Defaults to empty.
+
+## Get Canvas
+
+```http
+GET /api/v1/evi/canvases/{id}
+Authorization: Bearer theo_sk_...
+```
+
+Returns a single canvas by ID. Only the canvas owner can access it.
+
+## Update Canvas
+
+```http
+PATCH /api/v1/evi/canvases/{id}
+Authorization: Bearer theo_sk_...
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "graph_json": { "nodes": [...], "edges": [...] }
+}
+```
+
+All fields are optional. At least one must be provided.
+
+**Parameters**
+
+- `name` (string, optional)
+- `description` (string, optional)
+- `graph_json` (object, optional)
+- `is_public` (boolean, optional)
+
+## Delete Canvas
+
+```http
+DELETE /api/v1/evi/canvases/{id}
+Authorization: Bearer theo_sk_...
+```
+
+Permanently deletes the canvas. If a skill was published from it, the skill remains but is no longer linked.

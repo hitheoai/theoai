@@ -1,0 +1,91 @@
+---
+title: "Streaming"
+description: "Real-time Server-Sent Events (SSE) for token-by-token responses."
+---
+
+Theo supports streaming via **Server-Sent Events (SSE)** for real-time token delivery. Set `stream: true` on any completion request.
+
+## Event Types
+
+| Event | Description |
+|-------|-------------|
+| `meta` | Model info, resolved mode, active skills — emitted first |
+| `token` | A text chunk — emitted for each token as it's generated |
+| `tool` | A tool was called — includes tool name, arguments, and status |
+| `artifact` | A generated file (image, document, code) |
+| `genui_meta` | GenUI component library info (genui mode only) |
+| `done` | Final event — includes full response with usage data |
+| `error` | An error occurred during processing |
+
+## SDK Streaming
+
+```typescript
+const stream = theo.stream({
+  prompt: "Explain how TCP/IP works",
+});
+
+for await (const event of stream) {
+  switch (event.type) {
+    case "meta":
+      console.log("Mode:", (event.data as any).resolved_mode);
+      break;
+    case "token":
+      process.stdout.write(event.token!);
+      break;
+    case "tool":
+      console.log("Tool:", (event.data as any).name, (event.data as any).status);
+      break;
+    case "done":
+      console.log("\nCost:", (event.data as any).usage.cost_cents, "cents");
+      break;
+  }
+}
+```
+
+## Raw SSE (curl)
+
+```bash
+curl -N -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Write a haiku about code", "stream": true}'
+```
+
+The response is a stream of SSE events:
+
+```
+event: meta
+data: {"resolved_mode":"fast","model":{"id":"theo-1-flash","label":"Theo Flash"}}
+
+event: token
+data: {"token":"Lines"}
+
+event: token
+data: {"token":" of"}
+
+event: token
+data: {"token":" code"}
+
+event: done
+data: {"content":"Lines of code...", "usage": {"cost_cents": 0.01}}
+```
+
+## E.V.I. Streaming
+
+E.V.I. instances also support streaming:
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Kai, a coding assistant...",
+});
+
+const stream = evi.stream({
+  prompt: "Debug this React hook",
+});
+
+for await (const event of stream) {
+  if (event.type === "token") {
+    process.stdout.write(event.token!);
+  }
+}
+```

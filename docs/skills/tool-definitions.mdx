@@ -1,0 +1,40 @@
+---
+title: "Tool Definitions"
+description: "Define callable actions within a skill."
+---
+
+Tools give skills the ability to take actions. Each tool has a name, description, and JSON Schema for inputs.
+
+```typescript
+tools: [
+  {
+    name: "check_stock",
+    description: "Look up current stock levels by SKU and warehouse",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sku: { type: "string" },
+        warehouse: { type: "string" },
+      },
+      required: ["sku"],
+    },
+    requiresApproval: false,
+    permissionLevel: "user",
+  },
+]
+```
+
+## SkillToolInput Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Lowercase alphanumeric with underscores |
+| `description` | `string` | What the tool does (the model reads this) |
+| `inputSchema` | `object` | JSON Schema for arguments |
+| `outputSchema` | `object` | Optional JSON Schema for results |
+| `permissionLevel` | `string` | `"user"`, `"org_member"`, `"org_admin"`, `"system"` |
+| `requiresApproval` | `boolean` | If true, user must approve before execution |
+
+## Validation
+
+Tool names must match `/^[a-z0-9_]+$/`. Names that imply code-execution, shell access, or other sensitive operations are rejected during review.

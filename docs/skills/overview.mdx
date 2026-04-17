@@ -1,0 +1,48 @@
+---
+title: "What Are Skills?"
+description: "Installable packages of domain knowledge and capabilities — like apps for AI."
+---
+
+A skill is a package of domain knowledge and capabilities that extends what Theo can do. Think of it like an app for an AI — it gives Theo specialized expertise in a specific area.
+
+## What's Inside a Skill
+
+Every skill contains:
+
+1. **System Prompt Extension** — domain instructions injected into the LLM context
+2. **Tool Definitions** — callable actions the model can invoke
+3. **Permissions** — what the skill needs access to
+4. **Model Preference** — which model works best for this skill
+5. **Trigger** — how the skill activates (keyword, event, schedule, manual)
+6. **Knowledge Files** — bundled reference data
+
+## Two Ways to Use Skills
+
+### Installed Skills (Persistent)
+
+Install a skill once, and it's active on every completion:
+
+```typescript
+await theo.installSkill("skill-uuid-here");
+const res = await theo.complete({ prompt: "Research the latest AI agent frameworks" });
+// → Installed skill is automatically loaded
+```
+
+### Per-Request Skills (Ephemeral)
+
+Activate skills for a single request:
+
+```typescript
+const res = await theo.complete({
+  prompt: "Check stock levels for SKU-1234",
+  skills: ["inventory-check", "data-extraction"],
+});
+```
+
+Both methods stack — installed skills + per-request skills are all active together.
+
+## The Marketplace
+
+Skills are published to the Theo marketplace. Other developers can browse, install, and rate them. Skill authors earn revenue when their skills are used.
+
+See [Building a Skill](/skills/building-a-skill) to create your own.

@@ -1,0 +1,52 @@
+---
+title: "Publish Event"
+description: "Publish a custom event to trigger workflows and integrations."
+api: "POST /api/v1/events"
+---
+
+Publish a custom event to the Theo event bus. Events can trigger workflows, connector actions, and skill activations.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="orgId" type="string" required>
+  Organization UUID the event belongs to.
+</ParamField>
+
+<ParamField body="eventType" type="string" required>
+  Event type identifier (e.g., `"claim.created"`, `"policy.renewed"`).
+</ParamField>
+
+<ParamField body="payload" type="any">
+  Arbitrary event payload data.
+</ParamField>
+
+<ParamField body="sourceConnector" type="string">
+  ID of the connector that originated this event.
+</ParamField>
+
+## Request Example
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/events \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orgId": "org_abc123",
+    "eventType": "claim.created",
+    "payload": { "claimId": "CLM-001", "amount": 15000, "type": "auto" }
+  }'
+```
+
+## Response
+
+Returns the published event object with generated `id` and timestamp.
+
+## Endpoint
+
+`POST /api/v1/events`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

@@ -1,0 +1,120 @@
+---
+title: "E.V.I. Canvas"
+description: "Manage E.V.I. canvases programmatically — create, compile, test, and publish."
+---
+
+The Canvas API lets you manage E.V.I. visual skill graphs programmatically. Design skills as node graphs, compile them into manifests, test in a sandbox, and publish to the marketplace or your organization.
+
+## List Canvases
+
+```typescript
+const canvases = await theo.canvases();
+```
+
+## Get Canvas
+
+```typescript
+const canvas = await theo.canvas("canvas-uuid");
+```
+
+## Create Canvas
+
+```typescript
+const canvas = await theo.createCanvas({
+  name: "Support Agent",
+  description: "Customer service skill with knowledge base",
+  graph_json: {
+    nodes: [
+      { id: "in", type: "input", position: { x: 300, y: 0 }, data: { type: "input", label: "Input", config: { triggerType: "manual" } } },
+      { id: "p1", type: "prompt", position: { x: 280, y: 120 }, data: { type: "prompt", label: "Prompt", config: { content: "You are a helpful support agent." } } },
+      { id: "m1", type: "model", position: { x: 300, y: 260 }, data: { type: "model", label: "Model", config: { modelId: "theo-1-flash" } } },
+      { id: "out", type: "output", position: { x: 300, y: 400 }, data: { type: "output", label: "Output", config: { format: "text" } } },
+    ],
+    edges: [
+      { id: "e1", source: "in", target: "p1" },
+      { id: "e2", source: "p1", target: "m1" },
+      { id: "e3", source: "m1", target: "out" },
+    ],
+  },
+});
+```
+
+## Update Canvas
+
+```typescript
+await theo.updateCanvas(canvas.id, {
+  name: "Updated Support Agent",
+  graph_json: updatedGraph,
+});
+```
+
+## Delete Canvas
+
+```typescript
+await theo.deleteCanvas(canvas.id);
+```
+
+## Compile
+
+Validates the graph topology and compiles into a `SkillManifest` + `WorkflowSteps`.
+
+```typescript
+const result = await theo.compileCanvas(canvas.id);
+if (result.compiled) {
+  console.log("Manifest:", result.manifest);
+  console.log("Steps:", result.steps);
+} else {
+  console.error("Errors:", result.errors);
+}
+```
+
+## Test (Sandbox)
+
+Send a test message through the compiled canvas. Tool calls are simulated.
+
+```typescript
+const test = await theo.testCanvas(canvas.id, "Check stock for SKU-1234");
+console.log(test.response);
+console.log(`Cost: ${test.cost_cents} cents`);
+```
+
+Multi-turn testing with history:
+
+```typescript
+const test = await theo.testCanvas(canvas.id, "What about SKU-5678?", [
+  { role: "user", content: "Check stock for SKU-1234" },
+  { role: "assistant", content: "SKU-1234 has 47 units in stock." },
+]);
+```
+
+## Publish
+
+Compile, review, and publish as a skill. Choose visibility:
+
+```typescript
+// Private — only you
+await theo.publishCanvas(canvas.id, {
+  slug: "my-agent",
+  version: "1.0.0",
+  author: { name: "Your Name" },
+  visibility: "private",
+});
+
+// Organization — visible to your org members
+await theo.publishCanvas(canvas.id, {
+  slug: "team-agent",
+  version: "1.0.0",
+  author: { name: "Your Name" },
+  visibility: "org",
+  target_org_id: "org-uuid",
+});
+
+// Public marketplace
+await theo.publishCanvas(canvas.id, {
+  slug: "public-agent",
+  version: "1.0.0",
+  author: { name: "Your Name" },
+  visibility: "public",
+  readme: "# Public Agent\nA skill for everyone.",
+});
+```

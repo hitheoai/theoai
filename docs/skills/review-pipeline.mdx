@@ -1,0 +1,18 @@
+---
+title: "Review Pipeline & Risk Tiers"
+description: "Automated and manual review for marketplace skills."
+---
+
+## Automated Checks
+
+Every submission is scanned before it reaches a reviewer. Checks include manifest schema validation, prompt-injection heuristics, tool and permission audits, slug uniqueness, and version integrity. Per-author submission rate limits also apply. Specific detection rules and thresholds are not published.
+
+## Risk Tiers
+
+| Tier | Description |
+|------|-------------|
+| **Auto** | Low-risk manifests that pass all automated checks — approved without human review. |
+| **Staff** | Manifests that introduce tools, knowledge files, or write-scoped permissions — reviewed by the Theo marketplace team. |
+| **Security** | Manifests that combine external network access with write capability or other sensitive surfaces — reviewed by the security team before publish. |
+
+Submissions that don’t clearly fall into a higher tier are promoted to the next tier up rather than auto-approved.

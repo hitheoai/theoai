@@ -1,0 +1,54 @@
+{
+  "name": "@hitheo/telegram",
+  "version": "0.1.6",
+  "description": "Telegram bot adapter for the Theo AI orchestration API",
+  "author": "Theo AI",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "prepublishOnly": "tsc"
+  },
+  "keywords": [
+    "theo",
+    "ai",
+    "telegram",
+    "bot",
+    "adapter"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hitheoai/theoai.git",
+    "directory": "packages/telegram"
+  },
+  "homepage": "https://docs.hitheo.ai",
+  "bugs": "https://github.com/hitheoai/theoai/issues",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@hitheo/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

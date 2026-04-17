@@ -1,0 +1,62 @@
+---
+title: "Build with the E.V.I. Canvas"
+description: "Design AI skills visually with the drag-and-drop canvas editor."
+---
+
+The E.V.I. Canvas is a visual skill builder in the Theo dashboard. Instead of writing a manifest by hand, you drag nodes onto a canvas, connect them, and publish — Theo compiles the graph into a skill automatically.
+
+## Open the Canvas
+
+Navigate to **Dashboard → Skills → Canvas** or go directly to `api.hitheo.ai/dashboard/skills/canvas`. You can start from a blank canvas or pick a quick-start template (Customer Service Agent, Research Pipeline, Content Generator, Data Extractor).
+
+## Node Types
+
+Every canvas is a directed acyclic graph (DAG) of nodes:
+
+- **Input** — Entry point. Configures the trigger type (manual, keyword, event, schedule). Every canvas needs exactly one.
+- **Prompt** — System instructions injected into the skill's prompt extension.
+- **Model** — Selects a Theo model (`theo-1-flash`, `theo-1-reason`, `theo-1-code`, etc.) and temperature.
+- **Tool** — Declares a custom tool the skill can call. Includes name, description, and optional JSON schema.
+- **Knowledge** — Attaches reference documents (file keys) for RAG-style retrieval.
+- **Vision** — Enables multimodal image analysis. Configure the image source (upload, URL, or upstream step output) and analysis instructions.
+- **Condition** — Branch logic with a boolean expression. Outputs to "true" and "false" handles.
+- **Output** — Response format node. At least one must be reachable from Input.
+
+## Workflow
+
+1. **Design** — Drag nodes from the toolbar, connect edges, configure each node's settings inline.
+2. **Save** — Click **Save** (or Ctrl+S). The graph is persisted to your account.
+3. **Compile** — Click **Compile**. Theo validates the graph (checks for cycles, unreachable nodes, missing prompts) and transforms it into a `SkillManifest` + `WorkflowSteps`.
+4. **Test** — Click **Test** to open the sandbox playground. Send messages to your compiled skill in a safe environment — no real tool calls, mock data only.
+5. **Publish** — Click **Publish**, choose a slug, version, and visibility tier, then submit. The skill enters the same review pipeline as CLI/API-submitted skills.
+
+## Publishing Visibility
+
+When publishing, you choose one of three tiers:
+
+- **Private** — Only you can see and install the skill.
+- **My Organization** — All members of your organization can see and install the skill, but it's not listed publicly.
+- **Public Marketplace** — The skill is listed in the Skill Store for all Theo users.
+
+## Via SDK
+
+You can also manage canvases programmatically:
+
+```typescript
+const canvas = await theo.createCanvas({ name: "My Agent" });
+await theo.updateCanvas(canvas.id, {
+  graph_json: { nodes: [...], edges: [...] },
+});
+const compiled = await theo.compileCanvas(canvas.id);
+const test = await theo.testCanvas(canvas.id, "Hello, test message");
+const published = await theo.publishCanvas(canvas.id, {
+  slug: "my-agent",
+  version: "1.0.0",
+  author: { name: "Your Name" },
+  visibility: "public",
+});
+```
+
+## Via API
+
+All canvas operations are available under `POST/GET/PATCH/DELETE /api/v1/evi/canvases`. See the [Canvas API Reference](/api-reference/evi/canvases) for full details.

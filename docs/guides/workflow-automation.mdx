@@ -1,0 +1,41 @@
+---
+title: "Workflow Automation"
+description: "Build multi-step automated workflows with schedules and event triggers."
+---
+
+Workflows chain AI tasks together with scheduling, conditional logic, and notifications.
+
+## Create a Workflow
+
+```typescript
+const workflow = await theo.createWorkflow({
+  name: "Weekly Newsletter Draft",
+  triggerType: "schedule",
+  triggerConfig: { cron: "0 9 * * 1" },
+  steps: [
+    {
+      type: "ai_transform",
+      name: "Research trends",
+      config: { prompt: "Research top AI trends this week", skills: ["deep-research"] },
+    },
+    {
+      type: "ai_transform",
+      name: "Draft newsletter",
+      config: { prompt: "Draft a newsletter from the research above", skills: ["content-writer"] },
+    },
+    {
+      type: "notification",
+      name: "Send draft",
+      config: { channel: "email", to: "editor@acme.com" },
+    },
+  ],
+});
+```
+
+## Trigger Types
+
+| Type | Description |
+|------|-------------|
+| `schedule` | Cron-based schedule |
+| `event` | Triggered by system events |
+| `manual` | Triggered via API call |

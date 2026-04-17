@@ -1,0 +1,50 @@
+---
+title: "Compile Canvas"
+description: "Validate and compile an E.V.I. canvas into a SkillManifest and WorkflowSteps."
+---
+
+```http
+POST /api/v1/evi/canvases/{id}/compile
+Authorization: Bearer theo_sk_...
+```
+
+Validates the canvas graph and compiles it into two outputs:
+
+1. **SkillManifest** — Used by the skill system for marketplace listing, install, and prompt injection.
+2. **WorkflowSteps** — Used by the workflow engine for runtime execution.
+
+The compiled output is saved on the canvas record. The canvas status transitions to `"testing"`.
+
+## Validation Checks
+
+- Exactly 1 Input node
+- At least 1 reachable Output node
+- No cycles in the execution path
+- All nodes reachable from Input
+- Model nodes must have an upstream Prompt node
+- All node types must be valid (`input`, `prompt`, `model`, `tool`, `knowledge`, `condition`, `output`, `vision`)
+
+## Response (success)
+
+```json
+{
+  "compiled": true,
+  "manifest": { "name": "...", "slug": "...", "version": "1.0.0", "..." },
+  "steps": [{ "type": "ai_transform", "name": "...", "config": { "..." } }],
+  "errors": []
+}
+```
+
+## Response (validation errors)
+
+```json
+{
+  "compiled": false,
+  "errors": [
+    { "code": "cycle_detected", "message": "Canvas graph contains a cycle." },
+    { "code": "model_no_prompt", "message": "Model node has no Prompt node upstream.", "nodeId": "model-1" }
+  ]
+}
+```
+
+Status `422` is returned when validation fails.

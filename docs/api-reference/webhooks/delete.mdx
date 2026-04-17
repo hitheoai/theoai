@@ -1,0 +1,36 @@
+---
+title: "Delete Webhook"
+api: "DELETE /api/v1/webhooks/{id}"
+description: "Permanently remove a webhook endpoint. This cannot be undone."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X DELETE https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+await theo.deleteWebhook("WEBHOOK_ID");
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{ "deleted": true }
+```
+
+<Warning>
+  Deleting a webhook also removes its delivery log history. Export any logs you need before deleting.
+</Warning>

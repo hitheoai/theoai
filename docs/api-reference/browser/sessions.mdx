@@ -1,0 +1,175 @@
+---
+title: "Browser Sessions"
+description: "Create, inspect, refresh, and end Theo Browser sessions — headless browser automation with an iframe-embeddable live view."
+---
+
+Theo Browser gives your app a managed headless Chromium session that an LLM agent can drive through natural language tools (`browser_navigate`, `browser_act`, `browser_extract`, `browser_observe`, `browser_screenshot`), and surfaces the session through an **iframe-embeddable live view** so your users can watch (or take over) in real time.
+
+All four endpoints below are scoped to the caller's API key and gated behind the `connectors` scope. Sessions are hard-capped at 20 minutes by default and auto-closed on idle timeout (configurable via `THEO_BROWSER_SESSION_MAX_SECONDS` / `THEO_BROWSER_SESSION_IDLE_SECONDS`).
+
+## Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/v1/browser/sessions` | Create a new session (returns an iframe-ready live view + embed URL) |
+| `GET`  | `/api/v1/browser/sessions` | List active sessions |
+| `GET`  | `/api/v1/browser/sessions/:id` | Inspect a single session |
+| `GET`  | `/api/v1/browser/sessions/:id/live` | Refresh the live view URL (supports `?force=1`) |
+| `DELETE` | `/api/v1/browser/sessions/:id` | End the session (stops billing) |
+
+## Create a session
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/browser/sessions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://news.ycombinator.com",
+    "keep_alive": false,
+    "proxies": false,
+    "region": "us-west-2"
+  }'
+```
+
+```typescript SDK
+import { Theo } from "@hitheo/sdk";
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+const session = await theo.browser.create({
+  url: "https://news.ycombinator.com",
+  keep_alive: false,
+  region: "us-west-2",
+});
+
+console.log(session.live_view_url); // iframe this directly
+console.log(session.embed_url);     // or iframe this for branded Theo chrome
+```
+
+</CodeGroup>
+
+### Request Body
+
+<ParamField body="url" type="string">
+  Optional starting URL. The session will navigate immediately after launch so the first live view URL already targets the real page (avoids the `about:blank` target-bind issue).
+</ParamField>
+<ParamField body="keep_alive" type="boolean" default="false">
+  Keep the session alive across agent disconnects. Required if you want to reattach an agent to the same session after a client reconnect.
+</ParamField>
+<ParamField body="proxies" type="boolean" default="false">
+  Route traffic through Theo's residential proxy pool. Billed higher per MB.
+</ParamField>
+<ParamField body="region" type="string" default="us-west-2">
+  Datacenter region: `us-west-2` · `us-east-1` · `eu-central-1` · `ap-southeast-1`.
+</ParamField>
+
+### Response (201)
+
+```json
+{
+  "session_id": "bb_sess_abc123",
+  "live_view_url": "<iframe-embeddable live view URL>",
+  "live_view_version": 1,
+  "embed_url": "https://hitheo.ai/embed/browser/bb_sess_abc123?token=...",
+  "embed_token_expires_at": "2026-04-10T13:00:00Z",
+  "region": "us-west-2",
+  "keep_alive": false,
+  "started_at": "2026-04-10T12:00:00Z",
+  "expires_at": "2026-04-10T12:20:00Z"
+}
+```
+
+<Note>
+**`embed_url` is the zero-config path.** Drop it directly into an `<iframe src="...">` on your own product and you get the Theo-branded browser window (URL bar, live indicator, reconnect UI) with no SDK wiring. The token is short-lived — call `GET /:id` from your backend to mint a fresh one.
+</Note>
+
+## Refresh the live view URL
+
+The live view URL is pinned to a specific CDP page target. When the agent navigates, clicks something that opens a new tab, or the page destroys its target, the embedded WebSocket disconnects. Theo automatically force-refreshes after every agent tool call — but your own UI should also refresh on demand:
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/browser/sessions/bb_sess_abc123/live?force=1 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const refreshed = await theo.browser.live("bb_sess_abc123", { force: true });
+// refreshed.live_view_version is monotonic — rekey your iframe whenever
+// it advances, even if live_view_url appears identical.
+```
+
+</CodeGroup>
+
+**Why `live_view_version` matters.** Refetch with `?force=1` whenever the embedded live view signals a disconnect. The debugger endpoint can return the same URL string while silently swapping the underlying page target, so use `live_view_version` (not URL equality) to decide when to rekey the iframe. The Theo-hosted `embed_url` already handles this recovery for you.
+
+### Response
+
+```json
+{
+  "session_id": "bb_sess_abc123",
+  "live_view_url": "<iframe-embeddable live view URL>",
+  "live_view_version": 4,
+  "pages": [
+    {
+      "id": "79B2FCDA9D8DE8B841B451C1B4DA5277",
+      "url": "https://news.ycombinator.com/item?id=123",
+      "title": "Claude Design | Hacker News",
+      "favicon_url": "https://news.ycombinator.com/favicon.ico"
+    }
+  ]
+}
+```
+
+## List active sessions
+
+```bash
+curl https://hitheo.ai/api/v1/browser/sessions \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Returns `{ sessions: BrowserSessionSnapshot[] }` — same per-session shape as `GET /:id`.
+
+## Inspect a session
+
+```bash
+curl https://hitheo.ai/api/v1/browser/sessions/bb_sess_abc123 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Every call mints a fresh `embed_url` (1 h TTL) so long-running dashboards can re-issue iframes without spinning up a new session.
+
+## End a session
+
+```bash
+curl -X DELETE https://hitheo.ai/api/v1/browser/sessions/bb_sess_abc123 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "session_id": "bb_sess_abc123",
+  "duration_seconds": 142,
+  "proxy_bytes": 0,
+  "cost_cents": 4
+}
+```
+
+<Warning>
+Always end sessions explicitly. Idle / max-duration sweepers will close them eventually, but you are billed for the elapsed wall-clock time until then.
+</Warning>
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `url_blocked` | Starting URL failed the SSRF / allowlist guard |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 404 | `session_not_found` | Unknown session id (or not owned by caller) |
+| 404 | `live_view_unavailable` | Session ended or never produced a live URL |
+| 429 | `browser_session_limit` | Per-user concurrency cap reached (default: 3) |
+| 501 | `browser_unconfigured` | Theo Browser is not configured on this deployment |

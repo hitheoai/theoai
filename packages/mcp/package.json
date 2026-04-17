@@ -1,0 +1,63 @@
+{
+  "name": "@hitheo/mcp",
+  "version": "0.1.6",
+  "description": "MCP server for Theo AI — use Theo inside Cursor, Claude Code, Warp, Windsurf, and any MCP-compatible IDE",
+  "author": "Theo AI",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "theo-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "prepublishOnly": "tsc"
+  },
+  "keywords": [
+    "theo",
+    "mcp",
+    "ai",
+    "orchestration",
+    "cursor",
+    "claude-code",
+    "windsurf",
+    "warp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hitheoai/theoai.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://docs.hitheo.ai",
+  "bugs": "https://github.com/hitheoai/theoai/issues",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.2.0",
+    "@hitheo/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "vitest": "^4.1.1"
+  }
+}

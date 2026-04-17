@@ -1,0 +1,72 @@
+name: SDK Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+  workflow_dispatch:
+
+# Default to read-only. The publish job opts into id-token: write below so
+# npm can mint a provenance attestation; nothing else needs write.
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    # npm provenance requires an OIDC token issued to this job.
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [sdk, mcp, telegram, whatsapp]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # telegram, whatsapp, and mcp import from @hitheo/sdk, which resolves to
+      # the local workspace at packages/sdk. Without a prior build, that folder
+      # has no dist/ output and tsc fails with TS2307. Always build the SDK
+      # first when the target package is not the SDK itself.
+      - name: Build SDK (prerequisite for downstream packages)
+        if: matrix.package != 'sdk'
+        working-directory: packages/sdk
+        run: npx tsc
+
+      - name: Build package
+        working-directory: packages/${{ matrix.package }}
+        run: npx tsc
+
+      - name: Check if version changed
+        id: version
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view @hitheo/${{ matrix.package }} version 2>/dev/null || echo "0.0.0")
+          if [ "$CURRENT" != "$PUBLISHED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed: $PUBLISHED -> $CURRENT"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: $CURRENT"
+          fi
+
+      - name: Publish to npm
+        if: steps.version.outputs.changed == 'true'
+        working-directory: packages/${{ matrix.package }}
+        # --provenance mints an npm provenance attestation signed by GitHub's
+        # OIDC token, so consumers can verify the tarball was built by this
+        # exact workflow run on this exact commit.
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

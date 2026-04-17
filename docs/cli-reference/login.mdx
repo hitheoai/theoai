@@ -1,0 +1,26 @@
+---
+title: "theo login"
+description: "Authenticate with the Theo API."
+---
+
+```bash
+theo login
+```
+
+Opens the dashboard in your browser and guides you through setting your API key.
+
+## Storage
+
+API keys can be stored in:
+1. `THEO_API_KEY` environment variable (preferred)
+2. `~/.theo/credentials` file (persistent)
+
+```bash
+# Option 1: Environment variable
+export THEO_API_KEY=theo_sk_...
+
+# Option 2: Credentials file
+mkdir -p ~/.theo
+echo '{"apiKey":"theo_sk_..."}' > ~/.theo/credentials
+chmod 600 ~/.theo/credentials
+```

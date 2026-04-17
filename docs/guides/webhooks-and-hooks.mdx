@@ -1,0 +1,181 @@
+---
+title: "Webhooks & Hook Events"
+description: "Receive real-time notifications and trigger autonomous skill execution via webhooks and hooks."
+---
+
+Theo supports two complementary event systems for the E.V.I. canvas Input node's **Webhook Event** and **Hook Event** trigger types.
+
+## Webhooks — Outbound HTTP Notifications
+
+Webhooks deliver events to your HTTP endpoints. When something happens in Theo (completion, job finish, skill install, etc.), a signed POST is sent to every matching endpoint.
+
+### Register a Webhook
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/webhooks \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-server.com/webhooks/theo",
+    "event_types": ["completion.created", "job.completed"]
+  }'
+```
+
+```typescript SDK
+const webhook = await theo.createWebhook({
+  url: "https://your-server.com/webhooks/theo",
+  event_types: ["completion.created", "job.completed"],
+});
+// Save webhook.signing_secret — shown once only
+```
+
+</CodeGroup>
+
+The response includes a `signing_secret` — save it securely. It's shown once and used to verify payloads.
+
+### Event Catalog
+
+| Event | Description |
+|-------|-------------|
+| `completion.created` | A completion was generated |
+| `job.completed` / `job.failed` | Background job finished |
+| `workflow.completed` / `workflow.failed` | Workflow run finished |
+| `skill.installed` / `skill.uninstalled` | Skill install/uninstall |
+| `skill.submitted` / `skill.approved` / `skill.rejected` | Skill review |
+| `connector.created` / `connector.status_changed` | Connector events |
+| `credits.low` | Credit balance low |
+| `key.created` / `key.revoked` | API key events |
+
+Use `"*"` as an event type to receive all events.
+
+### Verify Signatures
+
+Every delivery includes HMAC-SHA256 signatures:
+
+```
+Theo-Webhook-Signature: v1=<hex>
+Theo-Webhook-Timestamp: <unix_seconds>
+Theo-Webhook-Id: <event_id>
+```
+
+Verify by computing `HMAC-SHA256(signing_secret, timestamp + "." + raw_body)` and comparing. Reject if the timestamp drifts more than 5 minutes.
+
+### Retry Behavior
+
+- Automatic retries with exponential backoff on transient failures
+- Per-attempt timeout enforced server-side
+- 4xx errors are not retried (client errors)
+- Webhooks are auto-disabled after a sustained run of failed deliveries
+- Every attempt — successful or failed — is recorded in the delivery log
+
+### Manage Webhooks
+
+- `GET /api/v1/webhooks` — List all webhooks
+- `PATCH /api/v1/webhooks/{id}` — Update URL, event types, enable/disable
+- `DELETE /api/v1/webhooks/{id}` — Remove
+- `POST /api/v1/webhooks/{id}/test` — Send a test event
+- `GET /api/v1/webhooks/{id}/deliveries` — View delivery log
+
+---
+
+## Hook Events — Autonomous Skill Triggers
+
+Hooks are internal event triggers that automatically execute skills when events occur — no HTTP endpoint needed. The skill runs headless via the autonomous executor with credit guards.
+
+### How Hooks Work
+
+1. An event is published (via `POST /api/v1/events` or internal platform events)
+2. The hook evaluator checks all enabled hooks for pattern matches
+3. Matching hooks load the associated skill and execute it autonomously
+4. Results are recorded in the execution log
+
+### Hook Presets
+
+| Preset | Event Pattern | Default Skill | Description |
+|--------|--------------|---------------|-------------|
+| `share.accepted.welcome` | `share.accepted` | `email-drafter` | Welcome on share accept |
+| `task.overdue.summary` | `task.overdue` | `todo-manager` | Summarize overdue tasks |
+| `project.created.suggestions` | `project.created` | `document-analyzer` | Suggest project next steps |
+| `team.member_joined.onboarding` | `team.member_joined` | `email-drafter` | Onboarding guidance |
+| `document.analyzed.followup` | `document.analyzed` | `document-analyzer` | Follow-up action items |
+
+### Install a Hook
+
+<CodeGroup>
+
+```bash curl
+# Using a preset
+curl -X POST https://hitheo.ai/api/v1/hooks \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hook_preset_id": "share.accepted.welcome",
+    "skill_slug": "email-drafter"
+  }'
+
+# Using a custom event pattern
+curl -X POST https://hitheo.ai/api/v1/hooks \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_pattern": "order.*.completed",
+    "skill_slug": "my-order-processor",
+    "cooldown_minutes": 5
+  }'
+```
+
+```typescript SDK
+// Preset
+await theo.createHook({
+  hook_preset_id: "share.accepted.welcome",
+  skill_slug: "email-drafter",
+});
+
+// Custom pattern
+await theo.createHook({
+  event_pattern: "order.*.completed",
+  skill_slug: "my-order-processor",
+  cooldown_minutes: 5,
+});
+```
+
+</CodeGroup>
+
+### Custom Event Patterns
+
+Patterns support:
+- **Exact match**: `share.accepted` matches only `share.accepted`
+- **Glob wildcard**: `order.*.completed` matches `order.purchase.completed`, `order.return.completed`
+- **Prefix match**: `share` matches `share.accepted`, `share.declined`, etc.
+- **Catch-all**: `*` matches everything
+
+### Publishing Events
+
+Use `POST /api/v1/events` to publish domain events that trigger hooks and webhooks:
+
+```typescript
+await theo.publishEvent({
+  orgId: "your-org-id",
+  eventType: "order.purchase.completed",
+  payload: { orderId: "ORD-123", total: 299.99 },
+});
+```
+
+### Guard Rails
+
+Autonomous execution runs under strict safety limits:
+- Pre-flight credit check before each run
+- Separate daily cap for autonomous actions
+- Per-run caps on tool invocations and total spend
+- Credit checkpoint between steps
+- Hooks auto-pause after repeated failures
+- Configurable cooldown between firings to prevent runaway execution
+
+### Manage Hooks
+
+- `GET /api/v1/hooks` — List hooks (includes available presets)
+- `PATCH /api/v1/hooks/{id}` — Update config, enable/disable
+- `DELETE /api/v1/hooks/{id}` — Remove
+- `GET /api/v1/hooks/{id}` — View execution history

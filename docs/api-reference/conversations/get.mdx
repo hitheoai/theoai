@@ -1,0 +1,44 @@
+---
+title: "Get Conversation"
+description: "Get a specific conversation with its messages."
+api: "GET /api/v1/conversations/{id}"
+---
+
+Retrieve a specific conversation, including its full message history.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The conversation UUID.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/conversations/conv_abc123 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const conversation = await theo.conversation("conv_abc123");
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="conversation" type="object">
+  Conversation object with `id`, `title`, `messages` (array), `createdAt`, and `updatedAt`.
+</ResponseField>
+
+## Endpoint
+
+`GET /api/v1/conversations/{id}`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

@@ -1,0 +1,50 @@
+---
+title: "Webhook Stats"
+api: "GET /api/v1/webhooks/{id}/stats"
+description: "Get delivery metrics for a webhook: total deliveries, success/failure counts, and success rate."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+## Response
+
+<ResponseField name="webhook_id" type="string">The webhook UUID</ResponseField>
+<ResponseField name="enabled" type="boolean">Current enabled state</ResponseField>
+<ResponseField name="consecutive_failures" type="number">Current consecutive failure streak. Resets on success; the webhook is auto-disabled once the streak crosses the server-side threshold.</ResponseField>
+<ResponseField name="last_delivered_at" type="string | null">Last successful delivery timestamp</ResponseField>
+<ResponseField name="deliveries" type="object">
+  <Expandable title="Delivery metrics">
+    <ResponseField name="total" type="number">Total delivery attempts</ResponseField>
+    <ResponseField name="successes" type="number">Successful deliveries</ResponseField>
+    <ResponseField name="failures" type="number">Failed deliveries</ResponseField>
+    <ResponseField name="success_rate_percent" type="number | null">Success rate as percentage (null if no deliveries)</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+```bash
+curl https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID/stats \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "webhook_id": "a1b2c3d4-...",
+  "enabled": true,
+  "consecutive_failures": 0,
+  "last_delivered_at": "2026-04-15T12:01:00.000Z",
+  "deliveries": {
+    "total": 142,
+    "successes": 140,
+    "failures": 2,
+    "success_rate_percent": 98.59
+  }
+}
+```

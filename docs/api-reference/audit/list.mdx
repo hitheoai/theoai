@@ -1,0 +1,64 @@
+---
+title: "List Audit Events"
+description: "Query the immutable audit trail."
+api: "GET /api/v1/audit"
+---
+
+Query the immutable audit trail. Every API action (completions, skill installs, key operations, etc.) is logged with full context.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Example
+
+```bash
+curl https://hitheo.ai/api/v1/audit \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+## Response
+
+Returns an array of audit event objects. Each event includes:
+
+<ResponseField name="id" type="string">
+  Event ID.
+</ResponseField>
+
+<ResponseField name="action" type="string">
+  Action performed (e.g., `"completion.created"`, `"skill.installed"`, `"key.created"`).
+</ResponseField>
+
+<ResponseField name="entityType" type="string">
+  Type of entity affected (e.g., `"completion"`, `"skill"`, `"api_key"`).
+</ResponseField>
+
+<ResponseField name="entityId" type="string">
+  ID of the affected entity.
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  User who performed the action.
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="inputSummary" type="object">
+  Summary of the request input.
+</ResponseField>
+
+<ResponseField name="outputSummary" type="object">
+  Summary of the response output.
+</ResponseField>
+
+<Note>
+  Audit events are stored in a tamper-evident, append-only log. They cannot be modified or deleted.
+</Note>
+
+## Endpoint
+
+`GET /api/v1/audit`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

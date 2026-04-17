@@ -1,0 +1,52 @@
+---
+title: "Error Handling"
+description: "Handle API errors with TheoApiError."
+---
+
+## TheoApiError
+
+All API errors are thrown as `TheoApiError` instances with structured details.
+
+```typescript
+import { Theo, TheoApiError } from "@hitheo/sdk";
+
+try {
+  const res = await theo.complete({ prompt: "Hello" });
+} catch (err) {
+  if (err instanceof TheoApiError) {
+    console.log(err.status);          // 401
+    console.log(err.message);         // "Theo API error 401: Invalid API key"
+    console.log(err.details?.code);   // "invalid_api_key"
+    console.log(err.details?.type);   // "authentication_error"
+    console.log(err.url);             // "https://hitheo.ai/api/v1/completions"
+  }
+}
+```
+
+## Error Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `status` | `number` | HTTP status code (0 for network errors) |
+| `message` | `string` | Human-readable error message |
+| `body` | `string` | Raw response body |
+| `url` | `string` | Request URL |
+| `details` | `object \| null` | Parsed `{ message, type, code, request_id }` |
+
+## Automatic Retries
+
+The SDK retries automatically on:
+- **429** — Rate limited (respects `Retry-After`)
+- **5xx** — Server errors (exponential backoff: 1s, 2s, 4s, max 8s)
+
+Client errors (400, 401, 403, 404) are **not** retried.
+
+Configure retries:
+
+```typescript
+const theo = new Theo({
+  apiKey: "...",
+  maxRetries: 3,    // Default: 2
+  timeoutMs: 60000, // Default: 30000
+});
+```

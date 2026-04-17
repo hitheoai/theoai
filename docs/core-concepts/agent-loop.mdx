@@ -1,0 +1,93 @@
+---
+title: "Agent Loop & Tool Execution"
+description: "How Theo executes multi-step tool calls in an iterative loop."
+---
+
+When tools are available (from skills, connectors, or inline definitions), Theo enters an iterative agent loop where the model can reason, call tools, observe results, and continue until the task is complete.
+
+## How It Works
+
+```
+Iteration 0: LLM reads prompt + system prompt + tool definitions
+             → Responds with text AND a tool call:
+               {"tool": "check_stock", "arguments": {"sku": "ABC123"}}
+             → Theo executes the tool, gets result
+
+Iteration 1: LLM reads the tool result + previous context
+             → Responds with text (no more tool calls)
+             → Final response returned
+```
+
+## Configuration
+
+You can control how many iterations the agent loop runs per request via the `max_iterations` parameter:
+
+```typescript
+const res = await theo.complete({
+  prompt: "Check stock and reorder if low",
+  tools: [/* ... */],
+  max_iterations: 4,  // Limit to 4 tool calls
+});
+```
+
+## Tool Sources
+
+Tools can come from three sources, all merged into a single available set:
+
+1. **Skill tools** — Defined in installed/per-request skill manifests
+2. **Inline tools** — Passed directly on the completion request via `tools[]`
+3. **Built-in tools** — Theo's system tools (web search, code execution, etc.)
+
+## Inline Tool Example
+
+```typescript
+const res = await theo.complete({
+  prompt: "Look up the customer and update their email",
+  tools: [
+    {
+      name: "lookup_customer",
+      description: "Search CRM for a customer by name or ID",
+      input_schema: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+        },
+        required: ["query"],
+      },
+    },
+    {
+      name: "update_customer",
+      description: "Update a customer field",
+      input_schema: {
+        type: "object",
+        properties: {
+          customer_id: { type: "string" },
+          field: { type: "string" },
+          value: { type: "string" },
+        },
+        required: ["customer_id", "field", "value"],
+      },
+    },
+  ],
+});
+```
+
+## Tool Execution in Response
+
+The `tools_used` array in the response shows which tools were called:
+
+```json
+{
+  "tools_used": [
+    { "name": "lookup_customer", "status": "success" },
+    { "name": "update_customer", "status": "success" }
+  ]
+}
+```
+
+## Guard Rails
+
+- **Iteration limit** — prevents runaway loops (configurable per request)
+- **Credit checkpoint** — verifies sufficient balance before each iteration
+- **Timeout** — configurable per request via SDK `timeoutMs`
+- If the engine hits the iteration limit, Theo forces a final synthesis response

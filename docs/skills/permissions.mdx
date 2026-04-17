@@ -1,0 +1,22 @@
+---
+title: "Permissions"
+description: "What skills can access and how permissions are enforced."
+---
+
+Skills declare what they need access to. Permissions are shown to users before install.
+
+| Permission | What It Allows |
+|-----------|---------------|
+| `read:conversations` | Access conversation history |
+| `read:artifacts` | Read generated files and images |
+| `write:artifacts` | Create and store files |
+| `write:notes` | Create user-visible notes |
+| `external:http` | Make outbound HTTP requests |
+| `execute:tools` | Call the skill's declared tools |
+| `autonomous:run` | Execute without user in the loop |
+
+## Enforcement
+
+- Skills without `execute:tools` have their tools stripped at load time
+- Skills without declared permissions operate in legacy mode (all tools allowed)
+- Permission combinations that grant broad write or external-network access are promoted to a higher review tier during submission

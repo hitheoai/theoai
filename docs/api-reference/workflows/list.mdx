@@ -1,0 +1,38 @@
+---
+title: "List Workflows"
+description: "List all workflows for the authenticated user."
+api: "GET /api/v1/workflows"
+---
+
+Returns all workflows owned by the authenticated user, ordered by creation date.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/workflows \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const workflows = await theo.workflows();
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="workflows" type="object[]">
+  Array of workflow objects with `id`, `name`, `triggerType`, `triggerConfig`, `steps`, `enabled`, `createdAt`, and `updatedAt`.
+</ResponseField>
+
+## Endpoint
+
+`GET /api/v1/workflows`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

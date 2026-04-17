@@ -1,0 +1,25 @@
+---
+title: "Skill Sandbox & Testing"
+description: "Test skills in isolation before publishing."
+---
+
+Use the sandbox API to test a skill without publishing it:
+
+```bash
+POST /api/v1/skills/sandbox
+```
+
+The sandbox executes the skill's system prompt extension and tools against a test prompt, returning the result without billing or persisting anything.
+
+## Local Testing
+
+1. Create your skill with `defineSkill()`
+2. Run `theo skill validate` to check the manifest
+3. Use per-request skills to test without installing:
+
+```typescript
+const res = await theo.complete({
+  prompt: "Test: check stock for SKU-123",
+  skills: ["my-skill-slug"],
+});
+```

@@ -1,0 +1,87 @@
+---
+title: "Text to Speech"
+description: "Convert text to spoken audio (returns MP3 binary)."
+api: "POST /api/v1/audio/tts"
+---
+
+Convert text to speech. Returns raw audio bytes (`audio/mpeg`) — not JSON.
+
+<Note>
+  The response is a binary MP3 file, not a JSON object. The `Content-Type` header is `audio/mpeg`.
+</Note>
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="text" type="string" required>
+  Text to convert to speech. Maximum 4,096 characters.
+</ParamField>
+
+<ParamField body="voice" type="string" default="theo-voice-classic">
+  Optional Theo voice identifier. Omit to use the default voice. Unknown values fall back to `theo-voice-classic`.
+
+  | Voice | Character |
+  |-------|-----------|
+  | `theo-voice-classic` | Neutral, versatile — default |
+  | `theo-voice-bright` | Bright, clear, upbeat |
+  | `theo-voice-storyteller` | Narrative, expressive |
+  | `theo-voice-deep` | Deep, authoritative |
+  | `theo-voice-warm` | Warm, professional |
+  | `theo-voice-soft` | Soft, thoughtful |
+</ParamField>
+
+<ParamField body="speed" type="number" default="1.0">
+  Playback speed multiplier (0.25–4.0).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/audio/tts \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Welcome to Theo. How can I help you today?",
+    "voice": "theo-voice-warm",
+    "speed": 1.0
+  }' \
+  --output speech.mp3
+```
+
+```typescript SDK
+const audioBuffer = await theo.tts({
+  text: "Welcome to Theo. How can I help you today?",
+  voice: "theo-voice-warm",
+  speed: 1.0,
+});
+
+// audioBuffer is an ArrayBuffer — write to file or stream to client
+import { writeFileSync } from "fs";
+writeFileSync("output.mp3", Buffer.from(audioBuffer));
+```
+
+</CodeGroup>
+
+## Response
+
+The response body is raw MP3 audio bytes.
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | `audio/mpeg` |
+| `Content-Length` | File size in bytes |
+| `X-Request-Id` | Unique request ID (prefixed `tts_`) |
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_text` | `text` is required |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 502 | `tts_provider_error` | Theo voice engine returned an error — retry |
+| 503 | `tts_unavailable` | TTS is not configured on this instance |

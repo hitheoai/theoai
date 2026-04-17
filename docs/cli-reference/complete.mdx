@@ -1,0 +1,21 @@
+---
+title: "theo complete"
+description: "Run a quick AI completion from the terminal."
+---
+
+```bash
+theo complete "<prompt>"
+```
+
+Sends a prompt to the Theo API and prints the response.
+
+```bash
+$ theo complete "Write a regex to validate email addresses"
+
+^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+
+---
+Model: Theo Flash | Mode: code | Cost: 0.03¢
+```
+
+Uses `mode: "auto"` by default. The model selection, cost, and mode are displayed below the response.

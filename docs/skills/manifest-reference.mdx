@@ -1,0 +1,34 @@
+---
+title: "Skill Manifest Reference"
+description: "Complete reference for theo-skill.json fields."
+---
+
+See the [SDK defineSkill() reference](/sdk-reference/skills) for the full typed interface.
+
+## Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Human-readable skill name |
+| `slug` | `string` | Unique ID (lowercase, hyphens, no leading/trailing hyphens) |
+| `version` | `string` | Semver (e.g., `1.0.0`) |
+| `description` | `string` | Short description |
+| `category` | `SkillCategory` | One of: `productivity`, `domain`, `integration`, `automation`, `creative` |
+| `author` | `object` | `{ name: string, email?: string, url?: string }` |
+| `systemPromptExtension` | `string` | Domain instructions injected into the LLM |
+
+## Optional Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `tools` | `SkillToolInput[]` | `[]` | Tool definitions |
+| `permissions` | `SkillPermission[]` | `[]` | Required permissions |
+| `knowledge` | `string[]` | `[]` | Bundled knowledge file paths |
+| `modelPreference` | `string` | — | Preferred model ID |
+| `trigger` | `SkillTriggerInput` | — | Activation trigger |
+| `hooks` | `object` | — | `{ onInstall?, onUninstall? }` |
+| `readme` | `string` | — | Markdown README |
+| `changelog` | `string` | — | Markdown changelog |
+| `license` | `string` | `"MIT"` | License identifier |
+| `repository` | `string` | — | Source repo URL |
+| `keywords` | `string[]` | `[]` | Search keywords |

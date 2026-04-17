@@ -1,0 +1,48 @@
+---
+title: "Create Organization"
+description: "Create a new organization for team management."
+api: "POST /api/v1/orgs"
+---
+
+Create an organization for multi-user access, team billing, and connector management.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Organization name.
+</ParamField>
+
+<ParamField body="type" type="string" optional>
+  Organization type. One of: `team` (default), `agency`, `carrier`, `fmo`, `mga`, `broker`.
+</ParamField>
+
+<ParamField body="slug" type="string" optional>
+  Unique URL-friendly identifier. Must be lowercase alphanumeric with hyphens. Generated automatically from `name` when omitted.
+</ParamField>
+
+## Request Example
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/orgs \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "type": "team",
+    "slug": "acme-corp"
+  }'
+```
+
+## Response (HTTP 201)
+
+Returns the created organization object with generated `id` and timestamps.
+
+## Endpoint
+
+`POST /api/v1/orgs`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

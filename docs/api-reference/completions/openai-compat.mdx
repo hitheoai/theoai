@@ -1,0 +1,216 @@
+---
+title: "OpenAI-Compatible Chat Completions"
+description: "Drop-in replacement for the OpenAI Chat Completions API. Point the OpenAI SDK at Theo and keep writing code the way you already do."
+api: "POST /api/v1/chat/completions"
+---
+
+Theo implements the OpenAI Chat Completions wire protocol at `POST /api/v1/chat/completions`. Any application that uses the OpenAI SDK can point `baseURL` at `https://api.hitheo.ai/v1`, swap in a Theo API key, and keep working — the endpoint accepts the same `{ model, messages, stream, temperature, ... }` shape and returns the same `chat.completion` / `chat.completion.chunk` objects.
+
+<Note>
+  The **response shape** is identical to OpenAI. The **routing** underneath is Theo — intent classification, model selection, and automatic failover. Pass `model: "theo-1-auto"` to let Theo pick the best engine per request.
+</Note>
+
+## Base URL
+
+```
+https://hitheo.ai/api/v1
+```
+
+## Authentication
+
+Uses the standard Bearer-token header. Your Theo API key replaces your OpenAI key.
+
+```bash
+Authorization: Bearer theo_sk_...
+```
+
+## Drop-in Example (OpenAI SDK)
+
+<CodeGroup>
+
+```typescript TypeScript
+import OpenAI from "openai";
+
+const theo = new OpenAI({
+  apiKey: process.env.THEO_API_KEY,
+  baseURL: "https://api.hitheo.ai/v1",
+});
+
+const res = await theo.chat.completions.create({
+  model: "theo-1-auto",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Write me a haiku about Miami." },
+  ],
+});
+
+console.log(res.choices[0].message.content);
+```
+
+```python Python
+from openai import OpenAI
+
+theo = OpenAI(
+    api_key=os.environ["THEO_API_KEY"],
+    base_url="https://api.hitheo.ai/v1",
+)
+
+res = theo.chat.completions.create(
+    model="theo-1-auto",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Write me a haiku about Miami."},
+    ],
+)
+
+print(res.choices[0].message.content)
+```
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/chat/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "theo-1-auto",
+    "messages": [
+      { "role": "user", "content": "Write me a haiku about Miami." }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+## Streaming
+
+Set `stream: true` to receive an SSE stream of `chat.completion.chunk` objects terminated by `data: [DONE]`, exactly as OpenAI does.
+
+```typescript
+const stream = await theo.chat.completions.create({
+  model: "theo-1-auto",
+  messages: [{ role: "user", content: "Stream me a short poem." }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+}
+```
+
+## Supported `model` Values
+
+Pass any Theo-branded model ID. `theo-1-auto` is recommended so Theo's intent classifier picks the best engine per request; pass a specific engine if you want to pin the routing.
+
+| Model ID | Theo Mode | Best For |
+|----------|-----------|----------|
+| `theo-1-auto` | auto | Let Theo pick the right engine per prompt |
+| `theo-1-flash` | fast | Quick responses, short chats, classification |
+| `theo-1-reason` | think | Deep reasoning, analysis, planning |
+| `theo-1-code` | code | Code generation and review |
+| `theo-1-create` | image | Image generation |
+| `theo-1-motion` | video | Video generation |
+| `theo-1-research` | research | Multi-step web research with citations |
+| `theo-1-roast` | roast | Unfiltered humor and sharp critique |
+| `theo-1-genui` | genui | Generative UI components |
+| `theo-1-analyze` | domain_analysis | Domain-specific analysis for business operations, finance, and compliance |
+| `theo-1-extract` | data_extraction | OCR and structured data extraction |
+| `theo-1-vision` | vision | Multimodal image analysis |
+
+Unknown model strings fall back to `auto` and Theo routes the request like any other prompt.
+
+## Request Body
+
+The body is the standard OpenAI Chat Completion shape. Fields not listed below are accepted but ignored (e.g. `top_p`, `n`, `max_tokens`, `user`).
+
+<ParamField body="model" type="string" default="theo-1-auto">
+  A Theo model ID. See the table above for valid values.
+</ParamField>
+
+<ParamField body="messages" type="object[]" required>
+  The conversation so far. Each message has `{ role, content }`. Supported roles: `system`, `user`, `assistant`. `tool` messages are accepted but ignored (Theo owns tool-call state internally).
+
+  The **last user message** is treated as the prompt. All `system` messages are merged into a single system prompt that overrides Theo's default persona. Prior user/assistant turns are injected as conversation context.
+</ParamField>
+
+<ParamField body="stream" type="boolean" default="false">
+  When `true`, returns an SSE stream of `chat.completion.chunk` objects terminated by `data: [DONE]`.
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature (0–2).
+</ParamField>
+
+<ParamField body="conversation_id" type="string">
+  **Theo-specific.** Attach this completion to an existing Theo conversation so its memory persists across channels. Omit to send a stateless request.
+</ParamField>
+
+<ParamField body="skills" type="string[]">
+  **Theo-specific.** Activate skills by slug for this request. Merged with the user's installed skills.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  **Theo-specific.** Arbitrary key-value data attached to the audit log.
+</ParamField>
+
+## Response
+
+A standard OpenAI `chat.completion` (or `chat.completion.chunk` for streaming). Theo-specific metadata is returned under a `theo_metadata` extension so it doesn't collide with existing OpenAI client expectations.
+
+```json
+{
+  "id": "chatcmpl_...",
+  "object": "chat.completion",
+  "created": 1715872800,
+  "model": "theo-1-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "Neon waves on sand..." },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 24,
+    "completion_tokens": 38,
+    "total_tokens": 62
+  },
+  "theo_metadata": {
+    "mode": "auto",
+    "resolved_mode": "fast",
+    "tools_used": [],
+    "artifacts": [],
+    "engine": "theo-core"
+  }
+}
+```
+
+## When to use `/v1/completions` instead
+
+- You need a **single-turn prompt** string instead of a message array.
+- You want the richer **native Theo response** (follow-ups, artifacts, tool traces) instead of the OpenAI shape.
+- You want to control `persona` or `response_style` per request.
+
+See [Create Completion](/api-reference/completions/create) for the native endpoint.
+
+## Errors
+
+Returns the same error envelope as every other v1 endpoint:
+
+```json
+{
+  "error": {
+    "message": "Validation failed: messages must contain at least one message.",
+    "type": "invalid_request_error",
+    "code": "validation_error"
+  }
+}
+```
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `validation_error` | `messages` is missing, empty, or malformed |
+| 400 | `empty_prompt` | `messages` contained only system/tool messages |
+| 401 | `invalid_api_key` | Missing or invalid `Authorization: Bearer theo_sk_...` |
+| 402 | `insufficient_credits` | Account balance is too low for the pre-flight reservation |
+| 404 | `not_found` | `conversation_id` not found |
+| 429 | `rate_limit_exceeded` | Check `Retry-After` |
+| 500 | `server_error` | Internal error |

@@ -1,0 +1,70 @@
+---
+title: "Project Config (defineConfig)"
+description: "Configure Theo for a project with typed settings."
+---
+
+## `defineConfig(config)`
+
+Creates a typed `TheoProjectConfig` for use in `theo.config.ts`. The MCP server reads this automatically.
+
+```typescript
+// theo.config.ts
+import { defineConfig } from "@hitheo/sdk";
+
+export default defineConfig({
+  persona: "You are Nova, an operations assistant for WarehouseOS.",
+  skills: ["inventory-check", "data-extraction"],
+  defaultMode: "auto",
+  tools: [
+    {
+      name: "check_stock",
+      description: "Look up current stock levels for a SKU",
+      input_schema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+  ],
+  temperature: 0.7,
+  metadata: { team: "warehouse-ops" },
+});
+```
+
+## TheoProjectConfig
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `persona` | `string` | Custom system prompt for every completion |
+| `skills` | `string[]` | Skill slugs activated on every request |
+| `defaultMode` | `ChatMode` | Default execution mode |
+| `tools` | `ToolDef[]` | Inline tool definitions |
+| `temperature` | `number` | Default temperature |
+| `metadata` | `Record<string, unknown>` | Metadata attached to every request |
+
+## File Formats
+
+The MCP server prefers **JSON** config by default:
+
+1. `theo.config.json` — always loaded when present (safe: parsed with `JSON.parse`).
+2. `theo.config.js` / `theo.config.ts` — **ignored by default.** Loading them executes arbitrary code from the current working directory, which is unsafe when an IDE launches the MCP server in a project you don't fully trust.
+
+To opt back into JS/TS config loading, set an environment variable before launching the MCP server:
+
+```bash
+export THEO_ALLOW_JS_CONFIG=1
+```
+
+With that flag set, the server loads `theo.config.js` first, then `theo.config.ts`, falling back to `theo.config.json`. If a JS/TS config is found without the flag, the MCP server logs a warning and skips it.
+
+<Warning>
+  Only enable `THEO_ALLOW_JS_CONFIG=1` in directories you authored or trust. Any repo with a malicious `theo.config.js` can run arbitrary code in your shell session when the MCP server launches.
+</Warning>
+
+## How It's Used
+
+When the `@hitheo/mcp` server starts, it:
+1. Reads `THEO_API_KEY` from the environment
+2. Loads `theo.config.json` (or JS/TS if opted in)
+3. Injects `persona`, `skills`, and `tools` into every MCP tool call
+4. Uses `defaultMode` as the fallback mode

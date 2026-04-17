@@ -1,0 +1,51 @@
+---
+title: "Get Usage"
+description: "Get API usage analytics and cost tracking."
+api: "GET /api/v1/usage"
+---
+
+Retrieve usage analytics including request counts, token consumption, cost breakdown by mode/model, and latency percentiles.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Query Parameters
+
+<ParamField query="from" type="string">
+  Start date (ISO 8601, e.g., `"2026-04-01"`).
+</ParamField>
+
+<ParamField query="to" type="string">
+  End date (ISO 8601, e.g., `"2026-04-14"`).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl "https://hitheo.ai/api/v1/usage?from=2026-04-01&to=2026-04-14" \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const usage = await theo.usage({ from: "2026-04-01", to: "2026-04-14" });
+```
+
+</CodeGroup>
+
+## Response
+
+Returns usage data including:
+- **Total requests** by day/week/month
+- **Cost breakdown** by mode, model, and skill
+- **Model distribution** — which engines handled your requests
+- **Latency percentiles** — p50, p95, p99 response times
+- **Cache hit rate** — percentage of requests served from semantic cache
+
+## Endpoint
+
+`GET /api/v1/usage`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

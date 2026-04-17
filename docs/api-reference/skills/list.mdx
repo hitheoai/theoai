@@ -1,0 +1,69 @@
+---
+title: "List Skills"
+description: "List marketplace or installed skills."
+api: "GET /api/v1/skills"
+---
+
+List available skills. Filter by installed skills or browse the full marketplace.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Query Parameters
+
+<ParamField query="filter" type="string">
+  Filter skills. Options:
+  - `"installed"` — Only skills installed by the authenticated user
+  - `"marketplace"` — All public marketplace skills (default when omitted)
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+# List installed skills
+curl "https://hitheo.ai/api/v1/skills?filter=installed" \
+  -H "Authorization: Bearer $THEO_API_KEY"
+
+# Browse marketplace
+curl https://hitheo.ai/api/v1/skills \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+// Installed skills
+const installed = await theo.skills("installed");
+
+// Marketplace
+const marketplace = await theo.skills("marketplace");
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="skills" type="object[]">
+  Array of skill objects. Each includes `id`, `name`, `slug`, `description`, `category`, `version`, `installCount`, `isPublic`, and more.
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "skills": [
+    {
+      "id": "skill_abc123",
+      "name": "Deep Research",
+      "slug": "deep-research",
+      "description": "Multi-step web research with citations and structured reports",
+      "category": "productivity",
+      "version": "1.2.0",
+      "installCount": 342,
+      "isPublic": true,
+      "authorUserId": "user_xyz"
+    }
+  ]
+}
+```

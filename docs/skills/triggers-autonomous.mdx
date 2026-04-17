@@ -1,0 +1,29 @@
+---
+title: "Triggers & Autonomous Execution"
+description: "How skills activate automatically."
+---
+
+## Trigger Types
+
+| Type | Description |
+|------|-------------|
+| `manual` | User explicitly activates |
+| `keyword` | Activates when prompt contains specific keywords |
+| `event` | Activates on system events (e.g., new claim, new message) |
+| `schedule` | Runs on a cron schedule |
+
+## Autonomous Execution
+
+Skills with `autonomous:run` permission can execute without a user sending a prompt:
+
+- **Scheduled tasks** — "Every Monday, run the compliance checker"
+- **Event triggers** — "When a new claim comes in, run triage"
+- **Heartbeat** — a background worker checks for due tasks at a regular cadence
+
+## Guard Rails
+
+- Pre-flight credit check before each autonomous run
+- Separate daily cap for autonomous actions
+- Per-run caps on steps and total spend
+- Credit checkpoint between steps
+- Skills auto-pause after repeated failures

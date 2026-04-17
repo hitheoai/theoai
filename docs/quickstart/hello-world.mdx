@@ -1,0 +1,95 @@
+---
+title: "Hello World"
+description: "Build a working example in under 5 minutes."
+---
+
+## Node.js / TypeScript
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+async function main() {
+  // Simple completion
+  const response = await theo.complete({
+    prompt: "Write a haiku about debugging code",
+    mode: "auto",
+  });
+
+  console.log(response.content);
+  console.log(`Model: ${response.model.label} | Cost: ${response.usage.cost_cents}¢`);
+}
+
+main();
+```
+
+**Run it:**
+
+```bash
+export THEO_API_KEY=theo_sk_...
+npx tsx hello.ts
+```
+
+## Streaming
+
+```typescript
+const stream = theo.stream({
+  prompt: "Explain how DNS works step by step",
+});
+
+for await (const event of stream) {
+  if (event.type === "token") {
+    process.stdout.write(event.token!);
+  }
+  if (event.type === "done") {
+    const done = event.data as { usage: { cost_cents: number } };
+    console.log(`\n\nCost: ${done.usage.cost_cents}¢`);
+  }
+}
+```
+
+## Python (REST API)
+
+No SDK needed — the REST API works with any HTTP client:
+
+```python
+import requests
+import os
+
+response = requests.post(
+    "https://hitheo.ai/api/v1/completions",
+    headers={
+        "Authorization": f"Bearer {os.environ['THEO_API_KEY']}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "prompt": "Write a Python function to flatten nested lists",
+        "mode": "code",
+    },
+)
+
+data = response.json()
+print(data["content"])
+print(f"Model: {data['model']['label']} | Cost: {data['usage']['cost_cents']}¢")
+```
+
+## With an E.V.I.
+
+Embed Theo in your product with a custom persona:
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Kai, a friendly coding assistant for DevHub. Help developers debug issues and write tests.",
+  skills: ["deep-research"],
+});
+
+const res = await evi.complete({
+  prompt: "Why is my useEffect running twice in dev mode?",
+});
+
+console.log(res.content);
+// → Kai explains React strict mode with code examples
+```
+
+Your user talks to "Kai" — they never see Theo. See the [E.V.I. Guide](/guides/build-an-evi) for the full walkthrough.

@@ -1,0 +1,82 @@
+---
+title: "Create Hook"
+api: "POST /api/v1/hooks"
+description: "Install an autonomous hook that triggers skill execution when matching events occur."
+---
+
+## Request
+
+<ParamField body="hook_preset_id" type="string" optional>
+  ID of a built-in hook preset (e.g., `share.accepted.welcome`, `task.overdue.summary`). Mutually exclusive with `event_pattern`.
+</ParamField>
+
+<ParamField body="event_pattern" type="string" optional>
+  Custom event pattern to match. Supports exact match (`share.accepted`), glob wildcards (`order.*.completed`), prefix match (`share`), or catch-all (`*`). Mutually exclusive with `hook_preset_id`.
+</ParamField>
+
+<ParamField body="skill_slug" type="string" required>
+  Slug of the skill to execute when the hook fires.
+</ParamField>
+
+<ParamField body="cooldown_minutes" type="number" optional>
+  Minimum time between firings in minutes (1–1440). A server-side default is applied when omitted.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  The hook's unique UUID.
+</ResponseField>
+
+<ResponseField name="event_pattern" type="string">
+  The resolved event pattern (from preset or custom).
+</ResponseField>
+
+<ResponseField name="skill_slug" type="string">
+  The target skill slug.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Always `true` on creation.
+</ResponseField>
+
+<ResponseField name="cooldown_minutes" type="number">
+  Cooldown period between firings.
+</ResponseField>
+
+## Authentication
+
+Requires an API key with `completions` scope.
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/hooks \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_pattern": "order.*.completed",
+    "skill_slug": "order-processor",
+    "cooldown_minutes": 5
+  }'
+```
+
+```typescript SDK
+const hook = await theo.createHook({
+  event_pattern: "order.*.completed",
+  skill_slug: "order-processor",
+  cooldown_minutes: 5,
+});
+```
+
+</CodeGroup>
+
+## Guard Rails
+
+- Pre-flight credit check before each autonomous execution
+- Separate daily cap for autonomous actions
+- Per-run caps on tool invocations and total spend
+- Hooks auto-pause after repeated failures
+- Cooldown enforced between firings

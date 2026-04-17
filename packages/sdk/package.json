@@ -1,0 +1,56 @@
+{
+  "name": "@hitheo/sdk",
+  "version": "0.1.6",
+  "description": "Official TypeScript SDK for the Theo AI orchestration API",
+  "author": "Theo AI",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "theo": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "prepublishOnly": "tsc",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "theo",
+    "ai",
+    "orchestration",
+    "llm",
+    "sdk"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hitheoai/theoai.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://docs.hitheo.ai",
+  "bugs": "https://github.com/hitheoai/theoai/issues",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}

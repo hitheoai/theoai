@@ -1,0 +1,107 @@
+---
+title: "Generate Code"
+description: "Generate production-quality code using the Theo Code engine."
+api: "POST /api/v1/code"
+---
+
+Generate code from a natural language prompt. The Theo Code engine is optimized for production-quality code and long-form output.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="prompt" type="string" required>
+  Description of the code to generate.
+</ParamField>
+
+<ParamField body="language" type="string">
+  Target programming language (e.g., `"typescript"`, `"python"`, `"go"`, `"rust"`). Appended as a hint to the engine.
+</ParamField>
+
+<ParamField body="framework" type="string">
+  Target framework (e.g., `"express"`, `"nextjs"`, `"fastapi"`, `"gin"`). Appended as a hint to the engine.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/code \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Write a TypeScript Express middleware for JWT authentication",
+    "language": "typescript",
+    "framework": "express"
+  }'
+```
+
+```typescript SDK
+const res = await theo.code({
+  prompt: "Write a TypeScript Express middleware for JWT authentication",
+  language: "typescript",
+  framework: "express",
+});
+
+console.log(res.content);    // Generated code
+console.log(res.artifacts);  // Any files created
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique code generation ID (prefixed `code_`).
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  The generated code as text.
+</ResponseField>
+
+<ResponseField name="artifacts" type="object[]">
+  Any files created during generation (e.g., multi-file outputs).
+</ResponseField>
+
+<ResponseField name="tools_used" type="object[]">
+  Tools invoked during code generation.
+
+  <Expandable title="Tool usage object">
+    <ResponseField name="name" type="string">Tool name.</ResponseField>
+    <ResponseField name="status" type="string">`"success"` or `"error"`.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  <Expandable title="Usage object">
+    <ResponseField name="cost_cents" type="number">Cost in cents.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "code_abc123",
+  "created": "2026-04-10T12:00:00Z",
+  "content": "import { Request, Response, NextFunction } from 'express';\nimport jwt from 'jsonwebtoken';\n\nexport function authMiddleware(req: Request, res: Response, next: NextFunction) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) return res.status(401).json({ error: 'No token provided' });\n  try {\n    const decoded = jwt.verify(token, process.env.JWT_SECRET!);\n    req.user = decoded;\n    next();\n  } catch {\n    return res.status(401).json({ error: 'Invalid token' });\n  }\n}",
+  "artifacts": [],
+  "tools_used": [],
+  "usage": { "cost_cents": 0.05 }
+}
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_prompt` | `prompt` is required |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 429 | `rate_limit_exceeded` | Too many requests |

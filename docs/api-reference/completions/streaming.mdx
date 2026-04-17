@@ -1,0 +1,61 @@
+---
+title: "Streaming Completions"
+description: "SSE streaming for real-time token delivery."
+---
+
+Set `stream: true` on any `POST /api/v1/completions` request to receive a Server-Sent Events (SSE) stream instead of a single JSON response.
+
+## Request
+
+```bash
+curl -N -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Write a haiku about code", "stream": true}'
+```
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).
+
+## Event Types
+
+| Event | Description |
+|-------|-------------|
+| `meta` | Engine info, resolved mode, active skills — emitted first |
+| `token` | A text chunk — emitted for each token as it’s generated |
+| `tool` | A tool was called — includes tool name, arguments, and status |
+| `artifact` | A generated file (image, document, code) |
+| `done` | Final event — includes full response with usage data |
+| `error` | An error occurred during processing |
+
+## Example Stream
+
+```
+event: meta
+data: {"resolved_mode":"fast","model":{"id":"theo-1-flash","label":"Theo Flash"}}
+
+event: token
+data: {"token":"Lines"}
+
+event: token
+data: {"token":" of"}
+
+event: token
+data: {"token":" code"}
+
+event: done
+data: {"content":"Lines of code...", "usage": {"cost_cents": 0.01}}
+```
+
+## SDK Usage
+
+```typescript
+for await (const event of theo.stream({ prompt: "Explain DNS" })) {
+  switch (event.type) {
+    case "meta":  console.log("Mode:", (event.data as any).resolved_mode); break;
+    case "token": process.stdout.write(event.token!); break;
+    case "done":  console.log("\nDone"); break;
+  }
+}
+```
+
+See [Streaming](/core-concepts/streaming) for the full conceptual guide.

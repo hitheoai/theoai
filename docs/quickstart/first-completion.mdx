@@ -1,0 +1,82 @@
+---
+title: "First Completion"
+description: "Make your first API call with curl and see the full response."
+---
+
+## Send a Request
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "What are the three laws of thermodynamics? Explain each in one sentence.",
+    "mode": "auto"
+  }'
+```
+
+## Response
+
+```json
+{
+  "id": "comp_abc123",
+  "object": "completion",
+  "created": "2026-04-10T12:00:00Z",
+  "content": "1. **Zeroth Law**: If two systems are each in thermal equilibrium with a third, they are in equilibrium with each other...",
+  "mode": "auto",
+  "resolved_mode": "fast",
+  "model": {
+    "id": "theo-1-flash",
+    "label": "Theo Flash",
+    "engine": "theo-core"
+  },
+  "tools_used": [],
+  "artifacts": [],
+  "follow_ups": [
+    { "label": "Explain entropy", "prompt": "Explain entropy in simple terms" },
+    { "label": "Real-world examples", "prompt": "Give real-world examples of each law" }
+  ],
+  "usage": {
+    "cost_cents": 0.02
+  }
+}
+```
+
+## What Just Happened
+
+1. Theo classified your prompt as a simple Q&A task (`resolved_mode: "fast"`)
+2. Routed to `theo-1-flash` for speed
+3. No tools were needed, so the agent loop was skipped
+4. Response was cached, billed (0.02¢), and audited
+
+## Try Different Modes
+
+```bash
+# Code generation — routes to Theo Code
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Write a TypeScript function that debounces any callback", "mode": "code"}'
+
+# Deep reasoning — routes to Theo Reason
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Compare microservices vs monolith architecture for a 10-person startup", "mode": "think"}'
+```
+
+## With Skills
+
+Activate domain expertise by passing skill slugs:
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Check current inventory for SKU-1234 across all warehouses",
+    "skills": ["inventory-check"]
+  }'
+```
+
+The skill's system prompt extension and tool definitions are injected into the pipeline automatically.

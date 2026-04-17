@@ -1,0 +1,54 @@
+---
+title: "Engine Routing & Fallbacks"
+description: "How Theo selects the best engine and handles failures."
+---
+
+Theo doesn't use a single model. The engine router selects the optimal engine for each task based on the resolved mode, with automatic failover if the primary engine is unavailable.
+
+## Engine Table
+
+|| Mode | Engine ID | Description |
+||------|-----------|-------------|
+|| fast / auto | `theo-1-flash` | Fast, lightweight completions |
+|| think | `theo-1-reason` | Deep reasoning and analysis |
+|| code | `theo-1-code` | Production-quality code generation |
+|| image | `theo-1-create` | Image generation |
+|| video | `theo-1-motion` | Video generation |
+|| research | `theo-1-research` | Multi-step web research and synthesis |
+|| roast | `theo-1-edge` | Unfiltered humor |
+|| genui | `theo-1-genui` | Generative UI components |
+|| domain analysis | `theo-1-analyze` | Domain-specific analysis (business, operations, etc.) |
+|| data extraction | `theo-1-extract` | Document OCR and structured data extraction |
+
+Theo has access to 300+ models and automatically selects the best one for each engine.
+
+## Automatic Failover
+
+Every engine has a built-in failover mechanism. If the primary model is unavailable or performing below quality thresholds, Theo automatically routes to a backup — you never see a broken response. Failover is transparent and logged in the audit trail.
+
+## Engine IDs in Responses
+
+API responses always use Theo-branded engine identifiers:
+
+```json
+{
+  "model": {
+    "id": "theo-1-reason",
+    "label": "Theo Reason",
+    "engine": "theo-core"
+  }
+}
+```
+
+## Skill Engine Preferences
+
+Skills can recommend a preferred engine via the `enginePreference` field in their manifest. When a skill's preferred engine differs from the mode default, Theo uses the skill's preference if available.
+
+## Check Engine Availability
+
+```bash
+curl https://hitheo.ai/api/v1/models \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Returns the full engine registry with status and availability.

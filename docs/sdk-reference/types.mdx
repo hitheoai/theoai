@@ -1,0 +1,60 @@
+---
+title: "TypeScript Types Reference"
+description: "All exported types from @hitheo/sdk."
+---
+
+## Core Types
+
+```typescript
+type ChatMode =
+  | "auto" | "fast" | "think" | "image" | "video"
+  | "code" | "research" | "roast" | "genui";
+
+type PersonaInput = "theo" | "none" | { system_prompt: string };
+```
+
+<Note>
+  Additional domain-specific modes are available for specialized use cases. Contact us or check the API for the full list.
+</Note>
+
+## Request/Response Types
+
+| Type | Used By | Description |
+|------|---------|-------------|
+| `CompletionRequest` | `theo.complete()` | Completion request body |
+| `CompletionResponse` | `theo.complete()` | Completion response |
+| `StreamEvent` | `theo.stream()` | SSE event (`meta`, `token`, `tool`, `done`, `error`) |
+| `ImageRequest` | `theo.images()` | Image generation request |
+| `ImageResponse` | `theo.images()` | Image generation response |
+| `VideoRequest` | `theo.video()` | Video generation request |
+| `CodeRequest` | `theo.code()` | Code generation request |
+| `CodeResponse` | `theo.code()` | Code generation response |
+| `ResearchRequest` | `theo.research()` | Research request |
+| `DocumentRequest` | `theo.documents()` | Document generation request |
+| `DocumentResponse` | `theo.documents()` | Document generation response |
+| `TtsRequest` | `theo.tts()` | TTS request |
+| `SttResponse` | `theo.stt()` | STT response |
+| `AsyncJobResponse` | `theo.video()`, `theo.research()` | Async job creation response |
+| `JobStatus` | `theo.job()`, `theo.waitForJob()` | Job polling response |
+| `HealthResponse` | `theo.health()` | System health response |
+| `ModelInfo` | `theo.models()` | Model registry entry |
+
+## Skill Types
+
+| Type | Description |
+|------|-------------|
+| `SkillManifestInput` | Input to `defineSkill()` |
+| `SkillManifest` | Validated output of `defineSkill()` |
+| `SkillCategory` | `"productivity"`, `"domain"`, `"integration"`, `"automation"`, `"creative"` |
+| `SkillPermission` | `"read:conversations"`, `"read:artifacts"`, `"write:artifacts"`, etc. |
+| `SkillTriggerType` | `"manual"`, `"keyword"`, `"event"`, `"schedule"` |
+| `SkillToolInput` | Tool definition within a skill manifest |
+| `SkillTriggerInput` | Trigger configuration |
+
+## E.V.I. Types
+
+| Type | Description |
+|------|-------------|
+| `EviConfig` | Configuration for `theo.evi()` |
+| `TheoProjectConfig` | Configuration for `theo.config.ts` |
+| `TheoConfig` | Client constructor options |

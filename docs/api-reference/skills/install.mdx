@@ -1,0 +1,58 @@
+---
+title: "Install Skill"
+description: "Install a marketplace skill for the authenticated user."
+api: "POST /api/v1/skills"
+---
+
+Install a skill from the marketplace. Once installed, the skill is automatically loaded on every completion request.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="skillId" type="string" required>
+  UUID of the skill to install.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/skills \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"skillId": "skill_abc123"}'
+```
+
+```typescript SDK
+await theo.installSkill("skill_abc123");
+```
+
+</CodeGroup>
+
+## Response (HTTP 201)
+
+```json
+{ "installed": true }
+```
+
+## Uninstall
+
+To uninstall a skill, send a `DELETE` request with the same body:
+
+```bash
+curl -X DELETE https://hitheo.ai/api/v1/skills \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"skillId": "skill_abc123"}'
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `validation_error` | Invalid `skillId` format (must be UUID) |
+| 404 | `not_found` | Skill not found |

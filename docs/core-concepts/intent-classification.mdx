@@ -1,0 +1,56 @@
+---
+title: "Intent Classification & Modes"
+description: "How Theo determines the best execution mode for each request."
+---
+
+When you send `mode: "auto"` (the default), Theo classifies your prompt to determine the optimal execution mode. You can also set the mode explicitly to skip classification entirely.
+
+## Available Modes
+
+|| Mode | Description | Engine |
+||------|-------------|--------|
+|| `auto` | Theo classifies automatically | Varies by classification |
+|| `fast` | Quick responses, simple tasks | `theo-1-flash` |
+|| `think` | Deep reasoning, complex analysis | `theo-1-reason` |
+|| `code` | Code generation and engineering | `theo-1-code` |
+|| `image` | Image generation | `theo-1-create` |
+|| `video` | Video generation (async) | `theo-1-motion` |
+|| `research` | Web research with citations (async) | `theo-1-research` |
+|| `roast` | Humorous, unfiltered responses | `theo-1-edge` |
+|| `genui` | Generative UI components | `theo-1-genui` |
+
+## Classification Process
+
+### How Classification Works
+Theo uses a multi-tier classification system. Obvious signals are caught instantly:
+- `"Draw me a logo"` → `image`
+- `"Write a React component"` → `code`
+- `"Research the latest AI news"` → `research`
+
+Ambiguous prompts are analyzed more deeply. The classifier returns:
+
+```json
+{ "mode": "think", "confidence": 0.92, "reasoning": "Complex analytical question requiring deep reasoning" }
+```
+
+### Explicit Override
+Pass `mode` directly to skip classification:
+
+```typescript
+const res = await theo.complete({
+  prompt: "Write a REST API for user management",
+  mode: "code",  // Skips classification entirely
+});
+```
+
+## Mode Selection in the Response
+
+Every response includes both the requested mode and the resolved mode:
+
+```json
+{
+  "mode": "auto",
+  "resolved_mode": "code",
+  "model": { "id": "theo-1-reason", "label": "Theo Reason" }
+}
+```

@@ -1,0 +1,150 @@
+---
+title: "WhatsApp Integration"
+description: "Connect Theo to WhatsApp using the @hitheo/whatsapp adapter."
+---
+
+The `@hitheo/whatsapp` package connects Theo to the WhatsApp Cloud API. Customers message your WhatsApp number and the adapter forwards each message to `POST /api/v1/completions`, then replies via the Cloud API.
+
+<Note>
+  Theo never hosts your WhatsApp number or tokens. You own the WhatsApp Business Account in Meta Business Suite, hold the access token, and deploy this adapter on **your** infrastructure; Theo only processes the completion traffic the adapter forwards. Your customers message your brand, not ours.
+</Note>
+
+## Prerequisites
+
+1. A WhatsApp Business API account (via Meta Business Suite)
+2. A Theo API key (`theo_sk_...`)
+3. A webhook URL for receiving incoming messages
+4. The Meta App Secret (used to verify webhook signatures)
+
+## Install
+
+<CodeGroup>
+```bash npm
+npm install @hitheo/whatsapp
+```
+```bash yarn
+yarn add @hitheo/whatsapp
+```
+```bash pnpm
+pnpm add @hitheo/whatsapp
+```
+</CodeGroup>
+
+## Quick Setup
+
+The package exports three functions:
+
+- `createWhatsAppHandler(config)` — returns an async function that processes a WhatsApp webhook payload.
+- `verifyWebhook(params)` — validates the Meta GET challenge during webhook registration.
+- `verifySignature(rawBody, headerSig, appSecret)` — HMAC-SHA256 signature check for the inbound POST. You MUST pass the **raw** request body (bytes), not a re-parsed JSON object.
+
+```typescript
+import express from "express";
+import {
+  createWhatsAppHandler,
+  verifyWebhook,
+  verifySignature,
+} from "@hitheo/whatsapp";
+
+const app = express();
+
+const handle = createWhatsAppHandler({
+  theoApiKey: process.env.THEO_API_KEY!,
+  whatsappToken: process.env.WHATSAPP_TOKEN!,
+  phoneNumberId: process.env.WHATSAPP_PHONE_ID!,
+  appSecret: process.env.WHATSAPP_APP_SECRET!,
+  mode: "auto",
+  skills: ["customer-support"],
+});
+
+// GET webhook verification
+app.get("/webhook", (req, res) => {
+  const challenge = verifyWebhook({
+    mode: req.query["hub.mode"] as string,
+    token: req.query["hub.verify_token"] as string,
+    challenge: req.query["hub.challenge"] as string,
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN!,
+  });
+  if (challenge) return res.send(challenge);
+  res.sendStatus(403);
+});
+
+// POST webhook — signature-verified, then handed off to the adapter
+app.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const ok = verifySignature(
+      req.body, // Buffer because of express.raw
+      req.header("x-hub-signature-256"),
+      process.env.WHATSAPP_APP_SECRET!,
+    );
+    if (!ok) return res.sendStatus(401);
+
+    const payload = JSON.parse(req.body.toString("utf8"));
+    await handle(payload);
+    res.sendStatus(200);
+  },
+);
+
+app.listen(3000, () => console.log("WhatsApp bot listening on :3000"));
+```
+
+## How It Works
+
+1. Customer sends a WhatsApp message
+2. Meta POSTs the webhook payload with an `X-Hub-Signature-256` header
+3. Your HTTP layer verifies the signature via `verifySignature`
+4. The adapter iterates over messages, forwards text and media to Theo (with a per-sender `conversation_id`), and sends Theo's response back via the Cloud API
+5. Status events (`delivered`, `read`) are acknowledged silently — no duplicate replies
+
+## Handler Config
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `theoApiKey` | `string` | ✅ | Your `theo_sk_...` API key |
+| `whatsappToken` | `string` | ✅ | WhatsApp Cloud API access token |
+| `phoneNumberId` | `string` | ✅ | Your WhatsApp phone number ID |
+| `appSecret` | `string` | | Meta App Secret. Store it in your environment and pass it to `verifySignature`; the adapter itself never reads network traffic. |
+| `theoBaseUrl` | `string` | | API base URL (default: `https://hitheo.ai`) |
+| `mode` | `ChatMode` | | Default mode |
+| `persona` | `PersonaInput` | | Custom persona or `"theo"` / `"none"` |
+| `skills` | `string[]` | | Skill slugs to activate on every message |
+| `conversationStore` | `ConversationStore` | | Map sender numbers → Theo conversation IDs. Defaults to an in-process `Map`. |
+| `enableVoice` | `boolean` | | Transcribe voice/audio with Theo speech-to-text and append the transcript to the prompt. Off by default (STT adds cost). |
+| `maxChunkChars` | `number` | | Max chars per outbound message. Default 4000. |
+
+## Attachments
+
+Image messages (and `image/*` documents) are downloaded inside the adapter and forwarded to Theo as **base64 image data**. The adapter presents the Meta access token to the Graph API to fetch the bytes, but never passes the tokenized Graph CDN URL onwards — so no credentials leave your deployment. Captions become the prompt text.
+
+Voice and audio messages are ignored unless you set `enableVoice: true`. When enabled, the adapter downloads the clip, transcribes it with Theo speech-to-text, and appends the transcript to the prompt as text.
+
+## Conversation Persistence Across Instances
+
+The default `ConversationStore` is in-process. For serverless or multi-instance deployments, plug in Redis or your database:
+
+```typescript
+import Redis from "ioredis";
+
+const redis = new Redis(process.env.REDIS_URL!);
+
+const handle = createWhatsAppHandler({
+  theoApiKey: process.env.THEO_API_KEY!,
+  whatsappToken: process.env.WHATSAPP_TOKEN!,
+  phoneNumberId: process.env.WHATSAPP_PHONE_ID!,
+  conversationStore: {
+    get: (from) => redis.get(`wa:conv:${from}`),
+    set: async (from, id) => {
+      await redis.set(`wa:conv:${from}`, id, "EX", 60 * 60 * 24 * 30);
+    },
+    clear: async (from) => {
+      await redis.del(`wa:conv:${from}`);
+    },
+  },
+});
+```
+
+<Tip>
+  Use `theo_sk_test_` keys during development to avoid billing.
+</Tip>

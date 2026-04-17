@@ -1,0 +1,22 @@
+---
+title: "Cost Optimization"
+description: "Tips for reducing API costs while maintaining quality."
+---
+
+## Use the Right Mode
+
+| Mode | Cost | Use When |
+|------|------|----------|
+| `fast` | Lowest | Simple Q&A, classification, short responses |
+| `auto` | Variable | Let Theo decide — usually picks the cheapest adequate model |
+| `think` | Higher | Complex reasoning, multi-step analysis |
+| `code` | Higher | Code generation, architecture design |
+
+## Tips
+
+1. **Set `mode: "fast"` for simple tasks** — routes to Theo Flash (cheapest)
+2. **Use semantic caching** — identical requests are free after the first call
+3. **Monitor usage** — `GET /api/v1/usage` shows cost breakdown by mode and model
+4. **Set daily caps** — configure spending limits in the billing dashboard
+5. **Use per-request skills** instead of installing everything — fewer skills = less prompt tokens
+6. **Lower `max_iterations`** — if you know the task needs only 1-2 tool calls, set `max_iterations: 3`

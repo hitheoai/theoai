@@ -1,0 +1,54 @@
+---
+title: "Test Webhook"
+api: "POST /api/v1/webhooks/{id}/test"
+description: "Send a test event to verify your webhook endpoint is reachable and signature verification works."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+## Behavior
+
+Dispatches a `completion.created` event with `_test: true` in the data payload. The delivery uses the same HMAC signing, SSRF checks, and retry logic as real events.
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID/test \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+await theo.testWebhook("WEBHOOK_ID");
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{ "sent": true }
+```
+
+### Test event payload your server receives
+
+```json
+{
+  "id": "evt_abc123...",
+  "type": "completion.created",
+  "created": "2026-04-15T12:00:00.000Z",
+  "data": {
+    "_test": true,
+    "message": "This is a test event from Theo. If you received it, your webhook is working!"
+  }
+}
+```
+
+<Tip>
+  Use the [delivery log](/api-reference/webhooks/deliveries) to check whether the test was delivered successfully.
+</Tip>

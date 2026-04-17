@@ -1,0 +1,337 @@
+---
+title: "Create Completion"
+description: "Send a prompt through the full orchestration pipeline — intent classification, skill loading, model routing, agent loop, and response."
+api: "POST /api/v1/completions"
+---
+
+The core endpoint of the Theo API. Sends a prompt through the full orchestration pipeline and returns the complete response.
+
+<Note>
+  For real-time token delivery, set `stream: true` or see [Streaming Completions](/api-reference/completions/streaming).
+</Note>
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+```bash
+Authorization: Bearer theo_sk_...
+```
+
+## Request Body
+
+<ParamField body="prompt" type="string" required>
+  The prompt text. Must be a non-empty string.
+</ParamField>
+
+<ParamField body="mode" type="string" default="auto">
+  Execution mode. When set to `auto`, Theo classifies the prompt and selects the optimal engine automatically.
+
+  Available modes:
+  - `auto` — Classify prompt and route to best engine (default)
+  - `fast` — Low-latency responses for simple queries
+  - `think` — Deep reasoning for complex analysis
+  - `code` — Code generation (Theo Code engine, extended output budget)
+  - `image` — Image generation (Theo Create)
+  - `video` — Video generation (async)
+  - `research` — Deep web research with citations (async)
+  - `roast` — Humorous, irreverent tone
+  - `genui` — Generate interactive UI components (OpenUI Lang)
+</ParamField>
+
+<ParamField body="stream" type="boolean" default="false">
+  Enable SSE streaming. When `true`, returns a `text/event-stream` response instead of JSON. See [Streaming](/api-reference/completions/streaming).
+</ParamField>
+
+<ParamField body="conversation_id" type="string">
+  Continue an existing conversation. Pass the conversation ID to maintain multi-turn context.
+</ParamField>
+
+<ParamField body="skills" type="string[]">
+  Skill slugs to activate for this request. These are merged with the user's installed skills.
+
+  Each slug activates a skill's prompt extension, tools, and model preferences for this completion. You can find slugs in the dashboard (copy icon on each skill card), via `GET /api/v1/skills`, or in the E.V.I. Canvas Input node.
+
+  See [Activating Skills via API](/guides/skills-api) for the full guide.
+</ParamField>
+
+<ParamField body="tools" type="object[]">
+  Inline tool definitions the model can call during the agent loop.
+
+  <Expandable title="Tool object">
+    <ParamField body="name" type="string" required>
+      Tool name (e.g., `check_inventory`).
+    </ParamField>
+    <ParamField body="description" type="string" required>
+      What the tool does — the model uses this to decide when to call it.
+    </ParamField>
+    <ParamField body="input_schema" type="object">
+      JSON Schema describing the tool's input parameters.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="persona" type="string | object" default="theo">
+  Override Theo's personality for this request.
+
+  - `"theo"` — Default Theo persona
+  - `"none"` — No persona (raw model output)
+  - `{ "system_prompt": "You are..." }` — Custom system prompt
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature (0–2). Higher values produce more creative output.
+</ParamField>
+
+<ParamField body="max_iterations" type="integer" default="8">
+  Maximum agent loop iterations (1–20). Each iteration is a think → act → observe cycle.
+</ParamField>
+
+<ParamField body="model_overrides" type="object">
+  Override the engine used for specific modes. Keys are mode names (e.g., `"code"`, `"think"`), values are Theo engine IDs (e.g., `"theo-1-reason"`, `"theo-1-flash"`). See [List Models](/api-reference/models/list) for valid engine IDs.
+</ParamField>
+
+<ParamField body="format" type="string" default="theo">
+  Response format. `"theo"` for the default format, `"openai"` for OpenAI-compatible format.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Arbitrary key-value metadata attached to the completion. Returned in the response and logged in the audit trail.
+</ParamField>
+
+<ParamField body="component_library" type="string">
+  Component library identifier for GenUI mode. Used by E.V.I. callers for custom UI rendering.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Explain microservices architecture",
+    "mode": "auto",
+    "temperature": 0.7
+  }'
+```
+
+```typescript SDK
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+const res = await theo.complete({
+  prompt: "Explain microservices architecture",
+  mode: "auto",
+  temperature: 0.7,
+});
+
+console.log(res.content);
+console.log(res.model.label);     // e.g. "Theo Flash"
+console.log(res.usage.cost_cents); // e.g. 0.02
+```
+
+</CodeGroup>
+
+### With Skills and Tools
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Check current inventory levels for SKU-1234",
+    "mode": "auto",
+    "skills": ["inventory-check"],
+    "tools": [
+      {
+        "name": "check_stock",
+        "description": "Look up current stock levels by SKU",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "sku": { "type": "string" },
+            "warehouse": { "type": "string" }
+          },
+          "required": ["sku"]
+        }
+      }
+    ],
+    "persona": { "system_prompt": "You are Atlas, an operations assistant." },
+    "max_iterations": 5
+  }'
+```
+
+```typescript SDK
+const res = await theo.complete({
+  prompt: "Check current inventory levels for SKU-1234",
+  skills: ["inventory-check"],
+  tools: [
+    {
+      name: "check_stock",
+      description: "Look up current stock levels by SKU",
+      input_schema: {
+        type: "object",
+        properties: {
+          sku: { type: "string" },
+          warehouse: { type: "string" },
+        },
+        required: ["sku"],
+      },
+    },
+  ],
+  persona: { system_prompt: "You are Atlas, an operations assistant." },
+  max_iterations: 5,
+});
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique completion ID (prefixed `cmpl_`).
+</ResponseField>
+
+<ResponseField name="object" type="string">
+  Always `"completion"`.
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  The generated text content.
+</ResponseField>
+
+<ResponseField name="mode" type="string">
+  The mode you requested (e.g., `"auto"`).
+</ResponseField>
+
+<ResponseField name="resolved_mode" type="string">
+  The mode Theo actually used after intent classification (e.g., `"fast"`, `"think"`, `"code"`).
+</ResponseField>
+
+<ResponseField name="model" type="object">
+  The Theo engine that handled the request.
+
+  <Expandable title="Model object">
+    <ResponseField name="id" type="string">
+      Theo-branded model ID (e.g., `"theo-1-flash"`, `"theo-1-reason"`).
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Human-readable name (e.g., `"Theo Flash"`, `"Theo Reason"`).
+    </ResponseField>
+    <ResponseField name="engine" type="string">
+      Engine subsystem (e.g., `"theo-core"`, `"theo-vision"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tools_used" type="object[]">
+  Tools called during the agent loop.
+
+  <Expandable title="Tool usage object">
+    <ResponseField name="name" type="string">Tool name.</ResponseField>
+    <ResponseField name="status" type="string">`"success"` or `"error"`.</ResponseField>
+    <ResponseField name="description" type="string">Tool description.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="artifacts" type="object[]">
+  Generated files (images, code, documents) produced during the completion.
+</ResponseField>
+
+<ResponseField name="follow_ups" type="object[]">
+  Suggested next prompts.
+
+  <Expandable title="Follow-up object">
+    <ResponseField name="label" type="string">Short label for the suggestion.</ResponseField>
+    <ResponseField name="prompt" type="string">Full prompt text.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token counts and cost.
+
+  <Expandable title="Usage object">
+    <ResponseField name="cost_cents" type="number">Cost in cents.</ResponseField>
+    <ResponseField name="prompt_tokens" type="integer">Input tokens consumed.</ResponseField>
+    <ResponseField name="completion_tokens" type="integer">Output tokens generated.</ResponseField>
+    <ResponseField name="total_tokens" type="integer">Total tokens.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metadata" type="object | null">
+  The metadata you passed in the request, echoed back.
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "cmpl_abc123",
+  "object": "completion",
+  "created": "2026-04-10T12:00:00Z",
+  "content": "Microservices architecture is a design pattern where an application is composed of small, independent services...",
+  "mode": "auto",
+  "resolved_mode": "fast",
+  "model": {
+    "id": "theo-1-flash",
+    "label": "Theo Flash",
+    "engine": "theo-core"
+  },
+  "tools_used": [],
+  "artifacts": [],
+  "follow_ups": [
+    { "label": "Compare with monoliths", "prompt": "Compare microservices vs monolithic architecture" },
+    { "label": "Service mesh", "prompt": "Explain service mesh in microservices" }
+  ],
+  "usage": {
+    "cost_cents": 0.02,
+    "prompt_tokens": 12,
+    "completion_tokens": 156,
+    "total_tokens": 168
+  },
+  "metadata": null
+}
+```
+
+## OpenAI-Compatible Format
+
+Pass `format: "openai"` to receive responses in OpenAI's `chat.completions` format. This allows drop-in replacement in existing OpenAI-based applications.
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Hello",
+    "format": "openai"
+  }'
+```
+
+The response follows the OpenAI `chat.completion` schema with `choices`, `usage`, and `model` fields.
+
+## Semantic Caching
+
+Non-conversation completions (no `conversation_id`) are automatically cached. Identical requests return cached results instantly at **zero cost**. See [Semantic Caching](/guides/semantic-caching).
+
+Cached responses include `"_cached": true` in the response body.
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `validation_error` | Invalid request body (missing prompt, invalid mode, etc.) |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 402 | `insufficient_credits` | Account has insufficient balance |
+| 404 | `not_found` | Conversation ID not found |
+| 429 | `rate_limit_exceeded` | Too many requests — check `Retry-After` header |
+| 500 | `server_error` | Internal server error |

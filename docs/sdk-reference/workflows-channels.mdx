@@ -1,0 +1,49 @@
+---
+title: "Workflows"
+description: "Schedule and trigger multi-step automations."
+---
+
+## Workflows
+
+### List Workflows
+
+```typescript
+const workflows = await theo.workflows();
+```
+
+### Create a Workflow
+
+```typescript
+const workflow = await theo.createWorkflow({
+  name: "Weekly Pipeline Report",
+  triggerType: "schedule",
+  triggerConfig: { cron: "0 9 * * 1" },  // Every Monday at 9am
+  steps: [
+    {
+      type: "ai_transform",
+      name: "Generate report",
+      config: {
+        prompt: "Analyze this week's pipeline changes",
+        skills: ["data-extraction", "content-writer"],
+      },
+    },
+    {
+      type: "notification",
+      name: "Send to team",
+      config: { channel: "email", to: "team@acme.com" },
+    },
+  ],
+});
+```
+
+### Trigger a Workflow
+
+```typescript
+const run = await theo.triggerWorkflow(workflow.id, {
+  overridePrompt: "Focus on enterprise deals this week",
+});
+```
+
+## Channel adapters
+
+Channel adapters (Telegram, WhatsApp) are deployed in your own infrastructure and talk to the REST API directly. See the [Telegram](/guides/telegram-bot) and [WhatsApp](/guides/whatsapp-integration) guides.

@@ -1,0 +1,69 @@
+---
+title: "Get Benchmarks"
+api: "GET /api/v1/benchmarks"
+description: "Retrieve aggregated platform performance benchmarks for a given time window."
+---
+
+## Query Parameters
+
+<ParamField query="window" type="string" optional>
+  Time window for aggregation. One of: `24h`, `7d`, `30d`. Default: `24h`.
+</ParamField>
+
+## Response
+
+<ResponseField name="window" type="string">
+  The requested time window.
+</ResponseField>
+
+<ResponseField name="latency_by_mode" type="object">
+  Per-mode latency statistics: `{ [mode]: { p50, p95, p99, count } }`.
+</ResponseField>
+
+<ResponseField name="ttft_by_mode" type="object">
+  Per-mode time-to-first-token statistics (streaming only): `{ [mode]: { p50, p95, count } }`.
+</ResponseField>
+
+<ResponseField name="classification" type="object">
+  Intent classification latency: `{ p50, p95, count }`. Null if no auto-mode requests in the window.
+</ResponseField>
+
+<ResponseField name="counters" type="object">
+  Aggregate counters: `total`, `failover_count`, `routing_accuracy`, `total_tokens`, `total_cost_cents`, `by_mode`.
+</ResponseField>
+
+## Authentication
+
+Requires an API key or a dashboard session.
+
+## Example
+
+```bash curl
+curl "https://hitheo.ai/api/v1/benchmarks?window=24h" \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Response
+
+```json
+{
+  "window": "24h",
+  "latency_by_mode": {
+    "fast": { "p50": 450, "p95": 1200, "p99": 2100, "count": 1543 },
+    "code": { "p50": 890, "p95": 2400, "p99": 4100, "count": 312 }
+  },
+  "ttft_by_mode": {
+    "fast": { "p50": 180, "p95": 450, "count": 1200 }
+  },
+  "classification": { "p50": 12, "p95": 310, "count": 890 },
+  "counters": {
+    "total": 2847,
+    "failover_count": 3,
+    "routing_accuracy": 0.94,
+    "total_tokens": 4520000,
+    "total_cost_cents": 1250,
+    "by_mode": { "fast": 1543, "code": 312, "image": 201 }
+  },
+  "bucket": "2026-04-16T05"
+}
+```

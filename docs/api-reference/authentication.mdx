@@ -1,0 +1,66 @@
+---
+title: "Authentication"
+description: "API key authentication for all Theo API endpoints."
+---
+
+All API endpoints (except `GET /health`) require authentication via a Bearer token in the `Authorization` header.
+
+## API Key Format
+
+Keys are prefixed with `theo_sk_` for identification:
+
+```
+theo_sk_a1b2c3d4e5f6...
+```
+
+All keys are production keys — requests are billed against your credit balance.
+
+## Making Authenticated Requests
+
+Include the key in every request:
+
+```bash
+curl https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer theo_sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Hello"}'
+```
+
+With the SDK, pass it during initialization:
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+```
+
+## Key Management
+
+Create and manage keys from the [API Dashboard](https://api.hitheo.ai) or via the API:
+
+```bash
+# Create a key
+curl -X POST https://hitheo.ai/api/v1/keys \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Production Server"}'
+```
+
+## Security Best Practices
+
+<Warning>
+  Never expose API keys in client-side code, public repositories, or logs.
+</Warning>
+
+- Store keys in environment variables or a secrets manager
+- Use test keys (`theo_sk_test_`) for development
+- Rotate keys regularly from the dashboard
+- Set per-key rate limits and spending caps
+
+## Error Responses
+
+| Status | Error Code | Description |
+|--------|-----------|-------------|
+| 401 | `invalid_api_key` | Key is missing, malformed, or revoked |
+| 402 | `insufficient_credits` | Account has insufficient balance |
+| 429 | `rate_limit_exceeded` | Too many requests — check `Retry-After` header |

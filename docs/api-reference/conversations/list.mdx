@@ -1,0 +1,38 @@
+---
+title: "List Conversations"
+description: "List all conversations for the authenticated user."
+api: "GET /api/v1/conversations"
+---
+
+Returns all conversations for the authenticated user.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Example
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/conversations \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const conversations = await theo.conversations();
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="conversations" type="object[]">
+  Array of conversation objects with `id`, `title`, `createdAt`, `updatedAt`, and message count.
+</ResponseField>
+
+## Endpoint
+
+`GET /api/v1/conversations`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

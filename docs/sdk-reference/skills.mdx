@@ -1,0 +1,76 @@
+---
+title: "Skills (defineSkill)"
+description: "Type-safe builder for creating Theo skill manifests."
+---
+
+## `defineSkill(input)`
+
+Validates and returns a complete `SkillManifest` from partial input.
+
+```typescript
+import { defineSkill } from "@hitheo/sdk";
+
+export default defineSkill({
+  name: "Inventory Check",
+  slug: "inventory-check",
+  version: "1.0.0",
+  description: "Real-time inventory lookup and reorder alerts",
+  category: "automation",
+  author: { name: "Acme Corp" },
+  systemPromptExtension: `
+    You are an inventory management specialist. When the user asks about
+    stock levels, use the check_stock tool.
+  `,
+  tools: [
+    {
+      name: "check_stock",
+      description: "Look up current stock levels by SKU",
+      inputSchema: {
+        type: "object",
+        properties: {
+          sku: { type: "string" },
+          warehouse: { type: "string" },
+        },
+      },
+    },
+  ],
+  permissions: ["read:artifacts", "external:http", "execute:tools"],
+  modelPreference: "theo-1-reason",
+  trigger: { type: "keyword", config: { keywords: ["stock", "inventory"] } },
+  knowledge: ["./warehouse-rules.json"],
+});
+```
+
+## Validation
+
+`defineSkill` validates:
+- **Slug format** — lowercase alphanumeric with hyphens, no leading/trailing hyphens
+- **Version** — must follow semver (`1.0.0`)
+- **Tool names** — lowercase alphanumeric with underscores
+
+Throws `Error` on invalid input.
+
+## SkillManifestInput Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | ✅ | Human-readable skill name |
+| `slug` | `string` | ✅ | Unique identifier (lowercase, hyphens) |
+| `version` | `string` | ✅ | Semver version |
+| `description` | `string` | ✅ | Short description |
+| `category` | `SkillCategory` | ✅ | `"productivity"`, `"domain"`, `"integration"`, `"automation"`, `"creative"` |
+| `author` | `{ name, email?, url? }` | ✅ | Author info |
+| `systemPromptExtension` | `string` | ✅ | Injected into the LLM system prompt |
+| `tools` | `SkillToolInput[]` | — | Tool definitions |
+| `permissions` | `SkillPermission[]` | — | Required permissions |
+| `knowledge` | `string[]` | — | Bundled knowledge file paths |
+| `modelPreference` | `string` | — | Preferred model ID |
+| `trigger` | `SkillTriggerInput` | — | Activation trigger |
+| `hooks` | `{ onInstall?, onUninstall? }` | — | Lifecycle hooks |
+| `readme` | `string` | — | Markdown README |
+| `changelog` | `string` | — | Markdown changelog |
+| `license` | `string` | — | License identifier (default: `"MIT"`) |
+| `repository` | `string` | — | Source repository URL |
+| `keywords` | `string[]` | — | Search keywords |
+
+See the [Skills deep dive](/skills/overview) for the full authoring guide.

@@ -1,0 +1,68 @@
+---
+title: "Create API Key"
+description: "Create a new API key for programmatic access."
+api: "POST /api/v1/keys"
+---
+
+Create a new API key. The full key is only returned once at creation time.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="name" type="string">
+  Human-readable label (e.g., `"Production Server"`, `"Development"`).
+</ParamField>
+
+<ParamField body="scopes" type="string[]">
+  Permission scopes for the key (e.g., `["completions", "skills"]`). Defaults to all scopes.
+</ParamField>
+
+<ParamField body="scope" type="'personal' | 'org'">
+  Declares whether the new key is a **personal** credential (visible only to you) or a **team** credential (shared with every member of the owning organization).
+
+  - `"personal"` — creates a personal key. `org_id` must not be provided. The server will **never** auto-attach your active team, even if you have permission to manage its keys.
+  - `"org"` — creates a team-shared key. Provide `org_id` to target a specific org, or omit it to fall back to your active team context.
+
+  When `scope` is omitted, the server infers the value: `"org"` if `org_id` is present, otherwise `"personal"`.
+</ParamField>
+
+<ParamField body="org_id" type="string">
+  Organization UUID to scope the key to. Required when `scope` is `"org"` and the caller has no active team context. Forbidden when `scope` is `"personal"`. The caller must hold the `manageApiKeys` permission on the target organization.
+</ParamField>
+
+## Request Examples
+
+Personal key (explicit):
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/keys \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Production Server", "scope": "personal"}'
+```
+
+Team-shared key (targets a specific org):
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/keys \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "CI pipeline", "scope": "org", "org_id": "org_123"}'
+```
+
+## Response
+
+Returns the created key object. The full API key string is **only included in this response** — store it securely.
+
+<Warning>
+  The full key value is only shown once at creation. You cannot retrieve it later.
+</Warning>
+
+## Endpoint
+
+`POST /api/v1/keys`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

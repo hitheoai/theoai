@@ -1,0 +1,36 @@
+---
+title: "Data Privacy"
+description: "How Theo handles, stores, and protects your data."
+---
+
+## Data Handling Principles
+
+- **No training on your data** — Prompts and responses are never used to train or fine-tune models. Your data is processed in real-time and used only to fulfill your request.
+- **Encrypted at rest** — Sensitive credentials (e.g. connector auth) are encrypted at the application layer using AES-256-GCM. All other data is encrypted at rest via the database provider's storage-level encryption.
+- **Encrypted in transit** — All communication uses TLS 1.2+ encryption.
+- **Tenant isolation** — Your data is logically isolated from other accounts. API keys, conversations, and artifacts are scoped to your account.
+- **API keys are hashed** — We store only a one-way hash of your key. Lost keys cannot be recovered.
+
+## Data Retention
+
+| Data Type | Retention |
+|-----------|----------|
+| Conversations | Retained until you delete them via the API or dashboard |
+| Audit logs | Retained for compliance period (minimum 90 days) |
+| Cache entries | TTL-based automatic expiration (minutes to hours depending on mode) |
+| Generated artifacts | Retained per your account settings; deletable at any time |
+| Account data | Retained while your account is active; deleted on account closure |
+
+## Data Deletion
+
+You can delete your data at any time:
+- **Conversations**: `DELETE /api/v1/conversations/{id}` or via the dashboard
+- **Artifacts**: deletable from the dashboard or via API
+- **Account**: contact support for full account and data deletion
+
+## Third-Party Model Providers
+
+When Theo routes your request to a model, the prompt is sent to the upstream provider for processing. We select providers with strong data handling commitments:
+- Prompts are not used for provider model training
+- Prompts are not stored by providers beyond the request lifecycle
+- We do not send your API key or account information to providers

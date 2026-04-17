@@ -1,0 +1,105 @@
+---
+title: "Create Skill"
+description: "Author a new skill (private by default)."
+api: "POST /api/v1/skills/create"
+---
+
+Create a new skill. Skills are private by default — use [Submit Skill](/api-reference/skills/submit) to publish to the marketplace.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Human-readable skill name.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  Unique identifier. Must be lowercase alphanumeric with hyphens (e.g., `"inventory-check"`).
+</ParamField>
+
+<ParamField body="category" type="string" required>
+  Skill category. One of: `productivity`, `domain`, `integration`, `automation`, `creative`.
+</ParamField>
+
+<ParamField body="system_prompt_ext" type="string" required>
+  System prompt extension injected into the LLM context when this skill is active.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Short description of what the skill does.
+</ParamField>
+
+<ParamField body="tool_definitions" type="object[]">
+  Tool definitions the skill provides.
+</ParamField>
+
+<ParamField body="is_public" type="boolean" default="false">
+  Whether the skill is publicly listed. Use [Submit Skill](/api-reference/skills/submit) for marketplace publishing with review.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/skills/create \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Inventory Check",
+    "slug": "inventory-check",
+    "category": "automation",
+    "system_prompt_ext": "You are an inventory specialist. Use check_stock to look up levels.",
+    "description": "Real-time inventory lookup and reorder alerts",
+    "tool_definitions": [
+      {
+        "name": "check_stock",
+        "description": "Look up current stock levels for a SKU",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "sku": { "type": "string" } },
+          "required": ["sku"]
+        }
+      }
+    ]
+  }'
+```
+
+```typescript SDK
+const skill = await theo.createSkill({
+  name: "Inventory Check",
+  slug: "inventory-check",
+  category: "automation",
+  system_prompt_ext: "You are an inventory specialist. Use check_stock to look up levels.",
+  description: "Real-time inventory lookup and reorder alerts",
+  tool_definitions: [
+    {
+      name: "check_stock",
+      description: "Look up current stock levels for a SKU",
+      inputSchema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+  ],
+});
+```
+
+</CodeGroup>
+
+## Response (HTTP 201)
+
+<ResponseField name="skill" type="object">
+  The created skill object with all fields including the generated `id`.
+</ResponseField>
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `validation_error` | Missing required fields or invalid slug format |
+| 409 | `conflict` | A skill with this slug already exists |

@@ -1,0 +1,43 @@
+---
+title: "Audio (TTS / STT)"
+description: "Text-to-speech and speech-to-text via the SDK."
+---
+
+## Text-to-Speech
+
+```typescript
+const audioBuffer = await theo.tts({
+  text: "Welcome to Theo. How can I help you today?",
+  voice: "theo-voice-warm", // Optional — see table below
+  speed: 1.0,               // Optional speed multiplier
+});
+
+// audioBuffer is an ArrayBuffer — write to file or stream to client
+import { writeFileSync } from "fs";
+writeFileSync("output.mp3", Buffer.from(audioBuffer));
+```
+
+### Voices
+
+| Voice | Character |
+|-------|-----------|
+| `theo-voice-classic` | Neutral, versatile — default |
+| `theo-voice-bright` | Bright, clear, upbeat |
+| `theo-voice-storyteller` | Narrative, expressive |
+| `theo-voice-deep` | Deep, authoritative |
+| `theo-voice-warm` | Warm, professional |
+| `theo-voice-soft` | Soft, thoughtful |
+
+Omitting `voice` or passing an unknown value falls back to `theo-voice-classic`.
+
+## Speech-to-Text
+
+```typescript
+const file = new Blob([audioBytes], { type: "audio/mp3" });
+const result = await theo.stt(file, "en");
+
+console.log(result.text);              // Transcribed text
+console.log(result.language);          // Detected language
+console.log(result.duration_seconds);  // Audio duration
+console.log(result.usage.cost_cents);  // Cost
+```

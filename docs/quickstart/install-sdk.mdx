@@ -1,0 +1,74 @@
+---
+title: "Install the SDK"
+description: "Set up @hitheo/sdk for TypeScript and Node.js projects."
+---
+
+## Installation
+
+<CodeGroup>
+```bash npm
+npm install @hitheo/sdk
+```
+
+```bash yarn
+yarn add @hitheo/sdk
+```
+
+```bash pnpm
+pnpm add @hitheo/sdk
+```
+</CodeGroup>
+
+**Requirements:** Node.js 18+ with native `fetch` support.
+
+## Initialize the Client
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({
+  apiKey: process.env.THEO_API_KEY!,
+  // Optional:
+  // baseUrl: "https://hitheo.ai",   // default
+  // timeoutMs: 30_000,              // default
+  // maxRetries: 2,                  // default — retries on 429/5xx
+});
+```
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `apiKey` | `string` | **required** | Your `theo_sk_...` API key |
+| `baseUrl` | `string` | `https://hitheo.ai` | API base URL |
+| `timeoutMs` | `number` | `30000` | Request timeout in milliseconds |
+| `maxRetries` | `number` | `2` | Max retry attempts on 429/5xx errors |
+
+## Retry Behavior
+
+The SDK automatically retries on:
+- **429 Too Many Requests** — respects the `Retry-After` header
+- **5xx Server Errors** — exponential backoff (1s, 2s, 4s, max 8s)
+
+Client errors (400, 401, 403, 404) are not retried.
+
+## Also Available
+
+### CLI
+
+The SDK includes a CLI for terminal usage:
+
+```bash
+npm install -g @hitheo/sdk
+theo init        # Set up Theo in a project
+theo status      # Check connection health
+theo complete "What is quantum computing?"
+```
+
+See the [CLI Reference](/cli-reference/overview) for all commands.
+
+### MCP Server — IDE Integration
+
+Use Theo inside Cursor, Claude Code, Warp, Windsurf, and VS Code via MCP:
+
+<Snippet file="mcp-setup.mdx" />

@@ -1,0 +1,110 @@
+---
+title: "Theo Browser"
+description: "Managed headless browser sessions from the @hitheo/sdk. Create, inspect, refresh, embed, and end sessions with fully typed responses."
+---
+
+The `theo.browser` namespace wraps the Theo Browser REST API. Every method returns strongly-typed responses and throws `TheoApiError` on failure.
+
+## Quick example
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+// 1. Spin up a session
+const session = await theo.browser.create({
+  url: "https://news.ycombinator.com",
+  keep_alive: false,
+  region: "us-west-2",
+});
+
+console.log(session.live_view_url); // raw iframe-embeddable live view URL
+console.log(session.embed_url);     // Theo-branded embed URL (recommended)
+
+// 2. Refresh the live URL after a disconnect
+const live = await theo.browser.live(session.session_id, { force: true });
+console.log(live.live_view_version); // monotonic — rekey your iframe on advance
+
+// 3. End the session
+await theo.browser.end(session.session_id);
+```
+
+## Methods
+
+### `theo.browser.create(request?)`
+
+Create a new managed browser session. Returns `BrowserSessionHandle`.
+
+```typescript
+const session = await theo.browser.create({
+  url: "https://example.com",     // optional starting URL
+  keep_alive: false,              // default: false
+  proxies: false,                 // default: false (residential proxy pool)
+  region: "us-west-2",            // default: us-west-2
+});
+```
+
+### `theo.browser.list()`
+
+List the caller's active sessions. Returns `BrowserSessionSnapshot[]`.
+
+### `theo.browser.get(id)`
+
+Inspect a single session. Returns `BrowserSessionSnapshot` — includes the current page URL/title/favicon and a freshly-minted `embed_url` (1 h TTL).
+
+### `theo.browser.live(id, options?)`
+
+Refresh the iframe-embeddable live view URL. Returns `BrowserLiveView`.
+
+Pass `{ force: true }` whenever the embedded live view signals a disconnect, so the returned URL targets the new CDP page id immediately. The Theo-hosted `embed_url` handles this automatically.
+
+### `theo.browser.end(id)`
+
+End the session and stop billing. Returns `BrowserEndResult` with the final duration, proxy bytes, and cost.
+
+## Types
+
+```typescript
+export interface BrowserSessionHandle {
+  session_id: string;
+  live_view_url: string | null;
+  embed_url?: string | null;
+  region: BrowserRegion;
+  keep_alive: boolean;
+  started_at: string;
+  expires_at: string;
+}
+
+export interface BrowserSessionSnapshot extends BrowserSessionHandle {
+  current_url?: string | null;
+  current_title?: string | null;
+  favicon_url?: string | null;
+  last_active_at?: string;
+  proxies?: boolean;
+}
+
+export interface BrowserLiveView {
+  session_id: string;
+  live_view_url: string;
+  live_view_version: number;
+  pages: Array<{
+    id: string;
+    url: string;
+    title: string;
+    favicon_url: string;
+  }>;
+}
+
+export interface BrowserEndResult {
+  session_id: string;
+  duration_seconds: number;
+  proxy_bytes: number;
+  cost_cents: number;
+}
+```
+
+## Related
+
+- [Browser Sessions API](/api-reference/browser/sessions) — REST endpoint reference
+- [Embed the Theo Browser](/api-reference/browser/embed) — drop-in iframe integration

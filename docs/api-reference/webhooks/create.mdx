@@ -1,0 +1,144 @@
+---
+title: "Create Webhook"
+api: "POST /api/v1/webhooks"
+description: "Register a new webhook endpoint to receive real-time event notifications."
+---
+
+## Request
+
+<ParamField body="url" type="string" required>
+  The HTTPS URL to deliver events to. Must use `https://` in production. Subject to SSRF validation — private IPs, cloud metadata endpoints, and non-HTTP schemes are blocked.
+</ParamField>
+
+<ParamField body="event_types" type="string[]" required>
+  Array of event types to subscribe to. Use `"*"` for all events, or specific types like `"completion.created"`.
+
+  Valid types: `completion.created`, `job.completed`, `job.failed`, `workflow.completed`, `workflow.failed`, `skill.installed`, `skill.uninstalled`, `skill.submitted`, `skill.approved`, `skill.rejected`, `skill.suspended`, `connector.created`, `connector.status_changed`, `credits.low`, `key.created`, `key.revoked`, `*`
+</ParamField>
+
+<ParamField body="secret" type="string" optional>
+  Optional custom signing secret (16–256 chars). If omitted, a cryptographically random 32-byte hex secret is generated.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  Optional description for the webhook (max 256 chars).
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  The webhook's unique UUID.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  The registered endpoint URL.
+</ResponseField>
+
+<ResponseField name="event_types" type="string[]">
+  Subscribed event types.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Always `true` on creation.
+</ResponseField>
+
+<ResponseField name="signing_secret" type="string">
+  The HMAC-SHA256 signing secret. **Shown once — save it immediately.** Used to verify webhook signatures on your server.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+## Authentication
+
+Requires an org-scoped API key with `completions` scope.
+
+```bash
+Authorization: Bearer theo_sk_...
+```
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/webhooks \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-server.com/webhooks/theo",
+    "event_types": ["completion.created", "job.completed"]
+  }'
+```
+
+```typescript SDK
+import Theo from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY });
+
+const webhook = await theo.createWebhook({
+  url: "https://your-server.com/webhooks/theo",
+  event_types: ["completion.created", "job.completed"],
+});
+
+// Save webhook.signing_secret — shown once only
+console.log("Signing secret:", webhook.signing_secret);
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "url": "https://your-server.com/webhooks/theo",
+  "event_types": ["completion.created", "job.completed"],
+  "enabled": true,
+  "signing_secret": "8f3a1b2c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
+  "created_at": "2026-04-15T12:00:00.000Z",
+  "_note": "Save the signing_secret — it will not be shown again."
+}
+```
+
+## Limits
+
+- A per-organization cap on active webhooks applies. If you need more, contact support.
+- URL must pass SSRF validation (no private IPs, no cloud metadata endpoints).
+- HTTPS required in production.
+
+## Signature Verification
+
+Every delivery includes three headers for verification:
+
+```
+Theo-Webhook-Signature: v1=<hex>
+Theo-Webhook-Timestamp: <unix_seconds>
+Theo-Webhook-Id: <event_id>
+```
+
+Verify by computing `HMAC-SHA256(signing_secret, timestamp + "." + raw_body)` and comparing to the signature. Reject if the timestamp drifts more than 5 minutes from your clock.
+
+```javascript path=null start=null
+const crypto = require("crypto");
+
+function verifyWebhook(rawBody, headers, secret) {
+  const timestamp = headers["theo-webhook-timestamp"];
+  const signature = headers["theo-webhook-signature"];
+
+  // Replay protection
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (age > 300) throw new Error("Timestamp too old");
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${timestamp}.${rawBody}`)
+    .digest("hex");
+
+  const [, hash] = signature.split("=");
+  if (hash !== expected) throw new Error("Invalid signature");
+
+  return JSON.parse(rawBody);
+}
+```

@@ -1,0 +1,83 @@
+---
+title: "Rate Limiting"
+description: "Request rate limits, tiers, spending caps, and how to handle 429 responses."
+---
+
+## Rate Limit Tiers
+
+Rate limits are enforced per API key using a 60-second sliding window. Each key has a tier that determines its limits:
+
+| Tier | Requests/min (RPM) | Tokens/min (TPM) |
+|------|-------------------|------------------|
+| Free (default) | 60 | 100,000 |
+| Starter | 300 | 500,000 |
+| Pro | 1,000 | 2,000,000 |
+| Enterprise | 5,000 | 10,000,000 |
+
+All new API keys start on the **Free** tier.
+
+## Per-Mode Limits
+
+Expensive modes have lower RPM caps, scaled proportionally to your tier's base RPM:
+
+| Mode | Free RPM | Starter RPM | Pro RPM | Enterprise RPM |
+|------|----------|-------------|---------|----------------|
+| Text / Code / Auto | 60 | 300 | 1,000 | 5,000 |
+| Stealth | 30 | 150 | 500 | 2,500 |
+| Image | 20 | 100 | 333 | 1,666 |
+| Research | 15 | 75 | 250 | 1,250 |
+| Video | 10 | 50 | 166 | 833 |
+
+Dashboard sessions have a fixed 120 RPM limit.
+
+## How to Increase Your Limits
+
+### Check your current limits
+
+```bash
+curl https://hitheo.ai/api/v1/rate-limits \
+  -H "Authorization: Bearer theo_sk_..."
+```
+
+### Request a tier upgrade
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/rate-limits/request-increase \
+  -H "Authorization: Bearer theo_sk_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requested_tier": "starter",
+    "use_case": "Production chatbot serving 10K daily active users",
+    "expected_volume": "~200 RPM peak, 50K requests/day"
+  }'
+```
+
+Requests are reviewed by the Theo platform team. You'll receive a `rate_limit.upgraded` webhook when approved.
+
+## Credit Balance
+
+In addition to request rate limits, each account has a credit balance. When your balance reaches zero, subsequent requests return `402 insufficient_credits` until you top up.
+
+## Handling 429 Responses
+
+When rate limited, the API returns:
+- **Status 429** with one of three codes:
+  - `rate_limit_exceeded` — universal RPM exceeded
+  - `mode_rate_limit_exceeded` — per-mode RPM exceeded
+  - `token_limit_exceeded` — TPM exceeded
+- **`Retry-After` header** — seconds to wait before retrying
+
+The SDK handles this automatically with exponential backoff (configurable via `maxRetries`).
+
+## Response Headers
+
+Every response includes rate limit headers reflecting your tier's actual limits:
+
+```
+X-Ratelimit-Limit-Requests: 60
+X-Ratelimit-Remaining-Requests: 47
+X-Ratelimit-Reset-Requests: 58s
+X-Ratelimit-Limit-Tokens: 100000
+X-Ratelimit-Remaining-Tokens: 85000
+X-Ratelimit-Reset-Tokens: 42s
+```

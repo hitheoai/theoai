@@ -1,0 +1,35 @@
+---
+title: "Usage & Analytics"
+description: "Monitor API usage, costs, and model distribution."
+---
+
+The Usage page gives you full visibility into your API consumption, costs, and performance.
+
+## Metrics Available
+
+- **Total requests** — by day, week, month with trend graphs
+- **Cost breakdown** — by mode, model, and active skill
+- **Model distribution** — which Theo engines handle your requests (pie chart)
+- **Latency percentiles** — p50, p95, p99 response times
+- **Cache hit rate** — percentage of requests served from semantic cache
+- **Token consumption** — prompt tokens vs. completion tokens
+- **Error rates** — 4xx and 5xx response breakdown
+
+## Filtering
+
+Filter usage data by:
+- **Date range** — custom start/end dates
+- **API key** — see usage for a specific key
+- **Mode** — filter by `fast`, `think`, `code`, etc.
+- **Skill** — see which skills contribute to usage
+
+## API Access
+
+All dashboard metrics are also available via the REST API:
+
+```bash
+curl "https://hitheo.ai/api/v1/usage?from=2026-04-01&to=2026-04-14" \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+See [Get Usage](/api-reference/usage/get) for details.

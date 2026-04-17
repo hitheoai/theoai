@@ -1,0 +1,91 @@
+---
+title: "Embed a Chat Widget"
+description: "Add a white-label Theo chat widget to your website with a single script tag."
+---
+
+Theo's embed widgets let you add an AI chat interface to any website. Each widget is linked to an API key and inherits its Brand Soul, credits, and permissions.
+
+## Quick Start
+
+1. **Create an API key** in the Dashboard → Keys page.
+2. **Create a widget** in Dashboard → Widgets, or via the API:
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/iframes \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key_id": "your-key-id",
+    "name": "Support Widget",
+    "appearance": { "primaryColor": "#715eac" },
+    "behavior": { "welcomeMessage": "Hi! How can I help?" }
+  }'
+```
+
+3. **Embed the snippet** on your site:
+
+```html
+<script
+  src="https://hitheo.ai/embed.js"
+  data-config-id="your-config-id"
+  async
+></script>
+```
+
+## Customization
+
+### Appearance
+
+Control the look of the widget via the `appearance` object:
+
+- `primaryColor` — Accent color for the widget header and buttons
+- `position` — `"bottom-right"` (default) or `"bottom-left"`
+- `borderRadius` — Corner radius in pixels
+- `fontFamily` — Custom font (loaded from Google Fonts)
+
+### Behavior
+
+- `welcomeMessage` — Greeting shown when the widget opens
+- `placeholder` — Input field placeholder text
+- `maxPromptLength` — Maximum characters per message
+- `enableFileUpload` — Allow users to upload images/documents
+- `enableVoice` — Enable voice input (speech-to-text)
+- `strictAbuse` — Enable abuse detection heuristics (rapid-fire, content repetition, prompt-length)
+
+### Brand Soul
+
+If the linked API key has a Brand Soul configured (via Dashboard → Keys → Brand Soul), the widget automatically inherits it. The Brand Soul defines the persona, tone, knowledge base, and behavior constraints — making the widget sound like your brand, not like a generic chatbot.
+
+## Security
+
+### Domain Allowlist
+
+Configure `allowedOrigins` on the API key to restrict which domains can embed the widget. Requests from unauthorized origins are rejected via CORS.
+
+### Bot Protection
+
+Enable `requireTurnstile: true` in the widget's security config to add a bot-protection challenge before the first message.
+
+### Abuse Detection
+
+When `strictAbuse` is enabled, Theo applies server-side heuristics that flag and throttle abusive traffic patterns — including rapid-fire requests from a single IP, repetitive or duplicate content, and excessively long prompts. Exact thresholds are not published so attackers can’t calibrate around them.
+
+### Human Escalation
+
+The widget automatically detects when users request a human agent ("talk to a real person", "get me an agent"). You can configure custom keyword triggers and actions (redirect to URL, show message, fire webhook) in the widget's intent config.
+
+## Preview
+
+Generate a preview token to test unpublished widgets in the Dashboard:
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/iframes/{id}/preview-token \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Preview tokens are short-lived and bypass the domain allowlist for testing.
+
+## API Reference
+
+- [Create Widget](/api-reference/iframes/create)
+- [List Widgets](/api-reference/iframes/list)

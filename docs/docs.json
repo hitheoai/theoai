@@ -1,0 +1,365 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "subdomain": "theoai",
+  "theme": "sequoia",
+  "name": "Theo API Docs",
+  "colors": {
+    "primary": "#715eac",
+    "light": "#00eefd",
+    "dark": "#ff00aa"
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://api.hitheo.ai"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://api.hitheo.ai",
+    "type": "link"
+  },
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/hitheoai/theoai"
+    },
+    {
+      "name": "Skill Marketplace",
+      "icon": "puzzle-piece",
+      "url": "https://api.hitheo.ai/dashboard/skills"
+    },
+    {
+      "name": "Playground",
+      "icon": "play",
+      "url": "https://hitheo.ai/playground"
+    }
+  ],
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "introduction/what-is-theo",
+              "introduction/how-theo-thinks",
+              "introduction/theo-vs-alternatives"
+            ]
+          },
+          {
+            "group": "Quickstart",
+            "pages": [
+              "quickstart/get-api-key",
+              "quickstart/first-completion",
+              "quickstart/install-sdk",
+              "quickstart/hello-world"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "core-concepts/orchestration-pipeline",
+              "core-concepts/intent-classification",
+              "core-concepts/model-routing",
+              "core-concepts/agent-loop",
+              "core-concepts/streaming",
+              "core-concepts/personas-evi",
+              "core-concepts/conversations-memory"
+            ]
+          },
+          {
+            "group": "Skills",
+            "pages": [
+              "skills/overview",
+              "skills/building-a-skill",
+              "skills/manifest-reference",
+              "skills/permissions",
+              "skills/tool-definitions",
+              "skills/triggers-autonomous",
+              "skills/publishing",
+              "skills/review-pipeline",
+              "skills/revenue-sharing",
+              "skills/sandbox-testing",
+              "guides/skills-api"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/build-an-evi",
+              "guides/evi-canvas",
+              "guides/ide-integration",
+              "guides/telegram-bot",
+              "guides/whatsapp-integration",
+              "guides/workflow-automation",
+              "guides/custom-tool-execution",
+              "guides/semantic-caching",
+              "guides/cost-optimization",
+              "guides/webhooks-and-hooks",
+              "guides/embed-widget",
+              "guides/voice-integration"
+            ]
+          },
+          {
+            "group": "Playground",
+            "pages": [
+              "playground/overview",
+              "playground/mode-selector",
+              "playground/skill-activation",
+              "playground/streaming-artifacts"
+            ]
+          },
+          {
+            "group": "Dashboard",
+            "pages": [
+              "dashboard/api-keys",
+              "dashboard/usage-analytics",
+              "dashboard/billing-credits",
+              "dashboard/skill-management",
+              "dashboard/settings"
+            ]
+          },
+          {
+            "group": "Security & Compliance",
+            "pages": [
+              "security/authentication",
+              "security/rate-limiting",
+              "security/data-privacy",
+              "security/audit-trail"
+            ]
+          },
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/authentication"
+            ]
+          },
+          {
+            "group": "Completions",
+            "pages": [
+              "api-reference/completions/create",
+              "api-reference/completions/streaming",
+              "api-reference/completions/openai-compat"
+            ]
+          },
+          {
+            "group": "Media Generation",
+            "pages": [
+              "api-reference/images/generate",
+              "api-reference/video/generate",
+              "api-reference/code/generate",
+              "api-reference/research/create",
+              "api-reference/documents/generate"
+            ]
+          },
+          {
+            "group": "Audio",
+            "pages": [
+              "api-reference/audio/text-to-speech",
+              "api-reference/audio/speech-to-text"
+            ]
+          },
+          {
+            "group": "Skills API",
+            "pages": [
+              "api-reference/skills/list",
+              "api-reference/skills/install",
+              "api-reference/skills/create",
+              "api-reference/skills/submit",
+              "api-reference/skills/get",
+              "api-reference/skills/versions",
+              "api-reference/skills/reviews"
+            ]
+          },
+          {
+            "group": "E.V.I. Canvas",
+            "pages": [
+              "api-reference/evi/canvases",
+              "api-reference/evi/compile",
+              "api-reference/evi/test",
+              "api-reference/evi/publish"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "pages": [
+              "api-reference/workflows/list",
+              "api-reference/workflows/create",
+              "api-reference/workflows/run"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api-reference/hooks/create",
+              "api-reference/hooks/list"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "api-reference/settings/get",
+              "api-reference/settings/update"
+            ]
+          },
+          {
+            "group": "Embed Widgets",
+            "pages": [
+              "api-reference/iframes/create",
+              "api-reference/iframes/list"
+            ]
+          },
+          {
+            "group": "Theo Browser",
+            "pages": [
+              "api-reference/browser/sessions",
+              "api-reference/browser/embed"
+            ]
+          },
+          {
+            "group": "Benchmarks",
+            "pages": [
+              "api-reference/benchmarks/get"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "api-reference/webhooks/create",
+              "api-reference/webhooks/list",
+              "api-reference/webhooks/update",
+              "api-reference/webhooks/delete",
+              "api-reference/webhooks/test",
+              "api-reference/webhooks/deliveries",
+              "api-reference/webhooks/retry",
+              "api-reference/webhooks/rotate-secret",
+              "api-reference/webhooks/stats"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api-reference/models/list",
+              "api-reference/tools/list",
+              "api-reference/conversations/list",
+              "api-reference/conversations/get",
+              "api-reference/jobs/get",
+              "api-reference/events/publish",
+              "api-reference/organizations/create",
+              "api-reference/keys/create",
+              "api-reference/usage/get",
+              "api-reference/audit/list",
+              "api-reference/health/check"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDK",
+        "groups": [
+          {
+            "group": "SDK Reference",
+            "pages": [
+              "sdk-reference/installation",
+              "sdk-reference/client",
+              "sdk-reference/completions",
+              "sdk-reference/evi",
+              "sdk-reference/canvases",
+              "sdk-reference/skills",
+              "sdk-reference/project-config",
+              "sdk-reference/media",
+              "sdk-reference/audio",
+              "sdk-reference/browser",
+              "sdk-reference/workflows-channels",
+              "sdk-reference/error-handling",
+              "sdk-reference/types"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI",
+        "groups": [
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli-reference/overview",
+              "cli-reference/init",
+              "cli-reference/login",
+              "cli-reference/mcp-install",
+              "cli-reference/status",
+              "cli-reference/complete",
+              "cli-reference/skill-commands",
+              "cli-reference/environment-variables"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "openapi": "https://hitheo.ai/api/v1/openapi.json",
+  "footerSocials": {
+    "x": "https://x.com/hitheoai",
+    "github": "https://github.com/hitheoai/theoai"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true
+  },
+  "search": {
+    "prompt": "Search Theo docs..."
+  },
+  "background": {
+    "decoration": "grid"
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "fonts": {
+    "family": "PT Sans",
+    "weight": 300
+  },
+  "favicon": "/images/theo-icon-512px.png",
+  "thumbnails": {
+    "appearance": "dark"
+  },
+  "styling": {
+    "eyebrows": "section"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "logo": "/images/theo-logo-v1.png",
+  "banner": {
+    "content": "Welcome to Theo Docs — the AI orchestration API.",
+    "dismissible": true
+  },
+  "navbar": {
+    "links": []
+  },
+  "seo": {
+    "indexing": "all"
+  },
+  "metadata": {
+    "timestamp": false
+  },
+  "interaction": {
+    "drilldown": true
+  }
+}

@@ -1,0 +1,117 @@
+---
+title: "Submit Skill"
+description: "Submit a skill manifest for marketplace review and publishing."
+api: "POST /api/v1/skills/submit"
+---
+
+Submit a skill manifest for marketplace review. Automated checks run immediately, and the skill is either auto-approved or queued for manual review based on its risk tier.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="manifest" type="object" required>
+  The full skill manifest object. See [Manifest Reference](/skills/manifest-reference) for all fields.
+</ParamField>
+
+<ParamField body="skill_id" type="string">
+  Existing skill UUID if this is a version update (not a new submission).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/skills/submit \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "manifest": {
+      "name": "Inventory Check",
+      "slug": "inventory-check",
+      "version": "1.0.0",
+      "description": "Real-time inventory lookup and reorder alerts",
+      "category": "automation",
+      "author": { "name": "Acme Corp" },
+      "systemPromptExtension": "You are an inventory management specialist...",
+      "tools": [],
+      "permissions": ["execute:tools"]
+    }
+  }'
+```
+
+```typescript SDK
+import { defineSkill } from "@hitheo/sdk";
+
+const manifest = defineSkill({
+  name: "Inventory Check",
+  slug: "inventory-check",
+  version: "1.0.0",
+  description: "Real-time inventory lookup and reorder alerts",
+  category: "automation",
+  author: { name: "Acme Corp" },
+  systemPromptExtension: "You are an inventory management specialist...",
+  permissions: ["execute:tools"],
+});
+
+const result = await theo.submitSkill(manifest);
+console.log(result.status);     // "approved" or "pending_review"
+console.log(result.reviewTier); // "auto", "staff", or "security"
+```
+
+</CodeGroup>
+
+## Response (HTTP 201)
+
+<ResponseField name="submission" type="object">
+  <Expandable title="Submission object">
+    <ResponseField name="id" type="string">Submission ID.</ResponseField>
+    <ResponseField name="status" type="string">`"approved"` or `"pending_review"`.</ResponseField>
+    <ResponseField name="reviewTier" type="string">Risk tier: `"auto"`, `"staff"`, or `"security"`.</ResponseField>
+    <ResponseField name="autoApproved" type="boolean">Whether the skill was auto-approved.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="review" type="object">
+  <Expandable title="Review results">
+    <ResponseField name="passed" type="boolean">Whether automated checks passed.</ResponseField>
+    <ResponseField name="tier" type="string">Assigned review tier.</ResponseField>
+    <ResponseField name="checks" type="object">Detailed check results.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Risk Tiers
+
+| Tier | Description |
+|------|-------------|
+| `auto` | Low-risk manifests that pass all automated checks — approved without human review. |
+| `staff` | Manifests that introduce tools, knowledge files, or write-scoped permissions — reviewed by the Theo marketplace team. |
+| `security` | Manifests that combine external network access with write capability or other sensitive surfaces — reviewed by the security team before publish. |
+
+### Example Response (Auto-Approved)
+
+```json
+{
+  "submission": {
+    "id": "sub_abc123",
+    "status": "approved",
+    "reviewTier": "auto",
+    "autoApproved": true
+  },
+  "review": {
+    "passed": true,
+    "tier": "auto",
+    "checks": { "schema": "pass", "injection_scan": "pass", "tool_names": "pass" }
+  }
+}
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 422 | `review_failed` | Automated checks failed — `review.checks` contains details |
+| 429 | `rate_limit_exceeded` | Submission rate limit exceeded — try again later |

@@ -1,0 +1,78 @@
+---
+title: "Embed the Theo Browser"
+description: "Drop a live Theo Browser session into your own product with a single iframe."
+---
+
+Every Theo Browser session response includes an `embed_url` that renders the full Theo-branded browser chrome (URL bar, live indicator, auto-reconnect UI) in a third-party iframe. No SDK wiring, no manual CDP handling — point an `<iframe>` at the URL and ship.
+
+## Quick start
+
+1. Create a session from your backend (never expose your `THEO_API_KEY` to the browser):
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+const session = await theo.browser.create({
+  url: "https://example.com",
+  region: "us-west-2",
+});
+return Response.json({ embed_url: session.embed_url });
+```
+
+2. Drop the URL into an iframe on your frontend:
+
+```html
+<iframe
+  src="{embed_url}"
+  width="100%"
+  height="600"
+  allow="clipboard-read; clipboard-write"
+  sandbox="allow-scripts allow-same-origin"
+></iframe>
+```
+
+That's it. The embed page handles:
+
+- Fetching the correct live view URL on first paint (no `about:blank` flash)
+- Listening for the embedded live view's disconnect signal
+- Auto-refetching and rekeying the iframe when the CDP target changes
+- Adaptive polling (tighter while disconnected, relaxed while healthy)
+- A Theo-branded URL bar + live indicator + reconnect overlay
+
+## How the token works
+
+`embed_url` is a signed, short-lived URL bound to `(sessionId, userId)`:
+
+- **Format:** `{APP_ORIGIN}/embed/browser/{sessionId}?token=<hmac>`
+- **Scope:** the token is tied to a specific session AND the user who created it
+- **Lifetime:** 60 minutes (Theo Browser sessions hard-cap at 20 min, so this leaves headroom for `keep_alive` sessions)
+- **Secret:** signed with `BROWSER_EMBED_TOKEN_SECRET` on the server; never exposed to the client
+- **Rotation:** every `GET /api/v1/browser/sessions/:id` call mints a fresh token, so long-running dashboards can refresh the iframe on demand
+
+A third party cannot forge a token for a session they don't own — even if they guess the session id, HMAC validation fails.
+
+## Disconnect handling
+
+The embed page already implements the full recovery protocol end-to-end. If you prefer to build a custom iframe wrapper against the raw `live_view_url` instead, poll `GET /api/v1/browser/sessions/:id/live?force=1` on a short interval and rekey your iframe whenever `live_view_version` advances — that counter bumps every time the server resolves a fresh debugger URL. Use version equality, not URL equality, because the debugger endpoint can return the same URL string while the underlying CDP page target has been silently swapped.
+
+Using `embed_url` is the recommended path — it encapsulates the reconnect protocol so you don't have to re-implement it.
+
+## Security posture
+
+- **Iframe sandbox:** `allow-scripts allow-same-origin` is the minimal set that keeps the embedded DevTools frontend + CDP WebSocket alive. Adding `allow-forms` / `allow-popups` has no functional benefit and can trigger stray navigations that retarget the iframe out of the live view.
+- **`frame-ancestors *`:** the embed page sets `Content-Security-Policy: frame-ancestors *` so any origin can iframe it. If you want to restrict which origins can load the embed, terminate the iframe at your own CDN layer and apply your own header.
+- **No credentials in the iframe:** the embed page never sees your API key. It talks to a companion token-authenticated `/embed/browser/:id/live` route.
+
+## End the session
+
+Always end the session from your backend when the user closes the iframe, otherwise you're billed for the remaining wall-clock time:
+
+```typescript
+await theo.browser.end(session.session_id);
+```
+
+## Related
+
+- [Browser Sessions API](/api-reference/browser/sessions) — the full `/api/v1/browser/sessions` surface
+- [Theo Browser SDK](/sdk-reference/browser) — typed helpers for Node/Deno/edge

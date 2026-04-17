@@ -1,0 +1,57 @@
+---
+title: "Conversations & Memory"
+description: "Multi-turn conversations with cross-session memory."
+---
+
+Theo maintains conversation history so the model has context from previous turns. Pass a `conversation_id` to continue an existing conversation.
+
+## Starting a Conversation
+
+The first request creates a new conversation automatically:
+
+```typescript
+const res = await theo.complete({
+  prompt: "I'm building a SaaS for project management. Help me plan the tech stack.",
+});
+
+// Save the conversation ID for follow-ups
+const conversationId = res.metadata?.conversation_id;
+```
+
+## Continuing a Conversation
+
+Pass the `conversation_id` to maintain context:
+
+```typescript
+const followUp = await theo.complete({
+  prompt: "What database should I use for this?",
+  conversation_id: conversationId,
+});
+// → Theo knows you're talking about a project management SaaS
+```
+
+## Conversation API
+
+### List Conversations
+
+```bash
+curl https://hitheo.ai/api/v1/conversations \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+### Get a Conversation
+
+```bash
+curl https://hitheo.ai/api/v1/conversations/{conversationId} \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Returns the full message history with metadata.
+
+## Cross-Channel Memory
+
+Theo's memory is **channel-agnostic**. If a user interacts via the web playground and then via Telegram, Theo remembers context from both. The conversation graph is tied to the user, not the channel.
+
+## Semantic Cache
+
+Identical prompts (same text, same mode, same skills) hit the semantic cache and return instantly at zero cost. Cache hits are marked in the response metadata.

@@ -1,0 +1,82 @@
+---
+title: "Theo vs. Alternatives"
+description: "How Theo compares to model proxies, LangChain, and direct model APIs."
+---
+
+## The Developer's Choice
+
+You want AI in your product. You have options:
+
+1. **Direct model APIs** — Call a single provider directly
+2. **Model proxy** — Use a unified gateway for multi-model access
+3. **Framework** — Build your own pipeline with LangChain / LangGraph
+4. **Orchestration API** — Use Theo for classification, routing, skills, tools, and billing in one call
+
+## Comparison
+
+| Capability | Direct API | Model Proxy | LangChain | **Theo** |
+|-----------|-----------|-----------|----------|------|
+| Model access | 1 provider | 300+ models | Any (you configure) | 300+ models |
+| Intent classification | ❌ | ❌ | Build it | ✅ Built-in |
+| Model routing | ❌ | Manual | Build it | ✅ Automatic |
+| Automatic failover | ❌ | ✅ | Build it | ✅ Built-in |
+| Tool execution | Provider-specific | ❌ | Build it | ✅ Agent loop |
+| Skills / domain expertise | ❌ | ❌ | ❌ | ✅ Marketplace |
+| Custom persona (E.V.I.) | Build it | ❌ | Build it | ✅ One parameter |
+| Memory | ❌ | ❌ | Build it | ✅ Cross-session |
+| Streaming | ✅ | ✅ | Build it | ✅ SSE |
+| Billing / credits | Provider billing | ✅ | ❌ | ✅ Per-token |
+| Semantic cache | ❌ | ❌ | Build it | ✅ Built-in |
+| Audit trail | ❌ | ❌ | Build it | ✅ Immutable |
+| Time to production | Weeks | Days | Months | **Hours** |
+
+## Code Comparison
+
+### DIY Approach — You handle everything
+
+```typescript
+const model = pickModelForTask(prompt);          // you build this
+const skills = loadDomainKnowledge(userContext);  // you build this
+const tools = resolveToolDefinitions(skills);     // you build this
+const systemPrompt = buildPrompt(persona, skills, tools); // you build this
+const response = await llmProvider.complete({ model, messages, tools });
+const toolResults = await executeTools(response.tool_calls); // you build this
+const finalResponse = await llmProvider.complete({ model, messages: [..., toolResults] });
+await debitCredits(user, response.usage);        // you build this
+await logAudit(user, response);                  // you build this
+```
+
+### Theo — One call
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: "theo_sk_..." });
+const response = await theo.complete({
+  prompt: "Check inventory across all warehouses",
+  skills: ["inventory-check"],
+  persona: { system_prompt: "You are Nova..." },
+});
+```
+
+## When to Use What
+
+**Use Theo when:**
+- You want AI features without building orchestration infrastructure
+- You need multi-model routing with automatic failover
+- You want domain expertise via installable skills
+- You're building an E.V.I. (embedded AI with custom persona)
+- You need built-in billing, caching, and audit
+
+**Use a model proxy when:**
+- You just need model access with unified billing
+- You're building your own orchestration layer
+
+**Use LangChain when:**
+- You need total control over every pipeline decision
+- Your use case requires custom agent architectures
+- You have the engineering team to build and maintain the infrastructure
+
+**Use direct APIs when:**
+- You only need one model from one provider
+- You have specific provider requirements (SLA, data residency)

@@ -1,0 +1,32 @@
+---
+title: "List Tools"
+description: "List all available tool definitions (system + skill tools)."
+api: "GET /api/v1/tools"
+---
+
+Returns all tools available to the authenticated user, combining system registry tools with tools from installed skills.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/tools \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const tools = await theo.tools();
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="tools" type="object[]">
+  Array of tool definition objects. Each includes `name`, `description`, `inputSchema`, `category`, `permissionLevel`, and `requiresApproval`.
+</ResponseField>

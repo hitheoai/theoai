@@ -1,0 +1,73 @@
+---
+title: "Build an E.V.I."
+description: "Embed Theo into your product with a custom persona, skills, and tools."
+---
+
+An E.V.I. (Embedded Virtual Intelligence) is Theo embedded in your product. Your users interact with your branded AI, powered by Theo's orchestration engine.
+
+## What You're Building
+
+```
+Your Application (CRM, dashboard, app)
+  └── Your UI (chat, sidebar, actions)
+        └── @hitheo/sdk (evi instance)
+              └── Theo API (api.hitheo.ai)
+                    └── Classify → Skills → Route → Agent Loop → Response
+```
+
+## Level 1: Custom Persona Only
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Kai, a friendly coding assistant for DevHub.",
+});
+
+const res = await evi.complete({
+  prompt: "Why is my useEffect running twice?",
+});
+```
+
+## Level 2: Persona + Skills
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Atlas, an operations assistant for AcmeCorp.",
+  skills: ["inventory-check", "data-extraction"],
+});
+```
+
+## Level 3: Persona + Skills + Inline Tools
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Nova, the AI assistant for WarehouseOS.",
+  skills: ["data-extraction"],
+  tools: [
+    {
+      name: "check_inventory",
+      description: "Look up stock levels for a SKU",
+      input_schema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+  ],
+});
+```
+
+## Streaming
+
+```typescript
+const stream = evi.stream({ prompt: "Generate inventory report" });
+for await (const event of stream) {
+  if (event.type === "token") process.stdout.write(event.token!);
+}
+```
+
+## Best Practices
+
+- **Persona**: Be specific about what the E.V.I. should NOT do ("Never mention Theo")
+- **Skills**: Install only what your use case needs
+- **Tools**: Keep descriptions clear — the model reads them to decide when to call
+- **Cost**: Use `mode: "fast"` for simple queries

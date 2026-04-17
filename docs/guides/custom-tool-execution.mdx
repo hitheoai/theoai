@@ -1,0 +1,40 @@
+---
+title: "Custom Tool Execution"
+description: "Connect Theo to your product's actions via inline tools."
+---
+
+Pass tool definitions on any completion request to let Theo call your product's actions:
+
+```typescript
+const res = await theo.complete({
+  prompt: "Check if we're low on SKU-A1234 and reorder if needed",
+  tools: [
+    {
+      name: "check_inventory",
+      description: "Look up current stock levels for a SKU",
+      input_schema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+    {
+      name: "create_reorder",
+      description: "Create a purchase order to restock",
+      input_schema: {
+        type: "object",
+        properties: {
+          sku: { type: "string" },
+          quantity: { type: "number" },
+        },
+        required: ["sku", "quantity"],
+      },
+    },
+  ],
+});
+
+console.log(res.tools_used);
+// [{ name: "check_inventory", status: "success" }, { name: "create_reorder", status: "success" }]
+```
+
+The model decides when to call each tool based on the descriptions you provide.

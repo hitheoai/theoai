@@ -1,0 +1,43 @@
+---
+title: "Update Settings"
+api: "PATCH /api/v1/settings"
+description: "Update the current user's preferences. All fields are optional — only provided fields are changed."
+---
+
+## Request
+
+<ParamField body="default_mode" type="string" optional>
+  Default routing mode. One of: `auto`, `fast`, `think`, `code`, `research`, `image`, `video`, `roast`.
+</ParamField>
+
+<ParamField body="personality" type="string" optional>
+  `"theo"` or `"none"`.
+</ParamField>
+
+<ParamField body="timezone" type="string" optional>
+  Valid IANA timezone string (e.g., `"America/New_York"`).
+</ParamField>
+
+<ParamField body="theo_branding" type="boolean" optional>
+  Enable or disable Theo branding in API responses.
+</ParamField>
+
+## Response
+
+Returns the full updated preferences (same shape as GET).
+
+## Authentication
+
+Requires an API key or a dashboard session. Changes are audited.
+
+## Example
+
+```bash curl
+curl -X PATCH https://hitheo.ai/api/v1/settings \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "default_mode": "code",
+    "timezone": "America/New_York"
+  }'
+```

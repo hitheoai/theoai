@@ -1,0 +1,66 @@
+---
+title: "E.V.I. (Embedded Virtual Intelligence)"
+description: "Create branded AI assistants with pre-configured persona, skills, and tools."
+---
+
+An E.V.I. is a pre-configured Theo client. Create it once, and every completion automatically includes your persona, skills, and tools.
+
+## Create an E.V.I.
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Nova, the AI assistant for WarehouseOS.",
+  skills: ["data-extraction"],
+  tools: [
+    {
+      name: "check_inventory",
+      description: "Look up stock levels for a SKU",
+      input_schema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+  ],
+  defaultMode: "auto",
+  defaultTemperature: 0.7,
+  metadata: { app: "warehouse-os" },
+});
+```
+
+## Use It
+
+```typescript
+// Persona, skills, and tools are injected automatically
+const res = await evi.complete({ prompt: "Check stock for SKU-A1234" });
+const stream = evi.stream({ prompt: "Generate inventory report" });
+```
+
+## EviConfig
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `persona` | `string` | ✅ | Custom system prompt — replaces Theo entirely |
+| `skills` | `string[]` | — | Skill slugs active on every completion |
+| `tools` | `ToolDef[]` | — | Inline tools available on every completion |
+| `defaultMode` | `ChatMode` | — | Default mode (default: `"auto"`) |
+| `defaultTemperature` | `number` | — | Default temperature |
+| `metadata` | `Record<string, unknown>` | — | Metadata on every request |
+
+## Merging Behavior
+
+Per-request values are **merged** with E.V.I. defaults:
+- `skills` — E.V.I. skills + request skills (combined)
+- `tools` — E.V.I. tools + request tools (combined)
+- `metadata` — E.V.I. metadata merged with request metadata (request wins on conflicts)
+- `mode` — Request mode overrides E.V.I. default
+- `temperature` — Request temperature overrides E.V.I. default
+
+```typescript
+// E.V.I. has skills: ["data-extraction"]
+// This request adds "compliance-checker" for a total of both
+const res = await evi.complete({
+  prompt: "Check compliance for order #123",
+  skills: ["compliance-checker"],
+});
+```

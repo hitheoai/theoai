@@ -1,0 +1,72 @@
+---
+title: "Publish Canvas"
+description: "Compile and publish an E.V.I. canvas as a skill with configurable visibility."
+---
+
+```http
+POST /api/v1/evi/canvases/{id}/publish
+Authorization: Bearer theo_sk_...
+Content-Type: application/json
+
+{
+  "slug": "my-support-agent",
+  "version": "1.0.0",
+  "author": { "name": "Your Name" },
+  "visibility": "public",
+  "readme": "# My Support Agent\nA customer service skill built with the E.V.I. Canvas.",
+  "license": "MIT",
+  "keywords": ["support", "customer-service"]
+}
+```
+
+Compiles the canvas, runs automated review checks, and publishes it as a skill. The skill enters the same review pipeline as skills submitted via CLI or API.
+
+## Parameters
+
+- `slug` (string, required) — Skill slug. Lowercase alphanumeric with hyphens.
+- `version` (string, required) — Semver version (e.g. `1.0.0`).
+- `author` (object, required) — `{ name, email?, url? }`.
+- `visibility` (string, optional) — Publishing visibility. Default: `"private"`.
+  - `"private"` — Only you can see and install the skill.
+  - `"org"` — Visible to all members of the target organization. Requires `target_org_id`.
+  - `"public"` — Listed in the public Skill Store.
+- `target_org_id` (string, optional) — Required when `visibility` is `"org"`. The UUID of the org to scope the skill to.
+- `readme` (string, optional) — Markdown README for the marketplace listing (max 50,000 chars).
+- `license` (string, optional) — SPDX license identifier. Default: `"MIT"`.
+- `keywords` (array, optional) — Up to 10 search keywords.
+
+## Response (auto-approved)
+
+```json
+{
+  "published": true,
+  "visibility": "public",
+  "submission": {
+    "id": "uuid",
+    "status": "approved",
+    "reviewTier": "auto",
+    "autoApproved": true
+  },
+  "skillId": "uuid"
+}
+```
+
+## Response (pending review)
+
+```json
+{
+  "published": true,
+  "visibility": "org",
+  "submission": {
+    "id": "uuid",
+    "status": "pending_review",
+    "reviewTier": "staff",
+    "autoApproved": false
+  },
+  "skillId": "uuid"
+}
+```
+
+## Response (compilation or review failure)
+
+Status `422` with `published: false` and an `errors` or `review` object describing what failed.

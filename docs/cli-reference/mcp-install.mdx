@@ -1,0 +1,34 @@
+---
+title: "theo mcp install"
+description: "Configure MCP for specific IDEs."
+---
+
+```bash
+theo mcp install [--ide <name>]
+```
+
+Writes the MCP server configuration for detected or specified IDEs.
+
+## IDE Options
+
+| IDE | Flag | Config Path |
+|-----|------|-------------|
+| Cursor | `--ide cursor` | `.cursor/mcp.json` |
+| Claude Code | `--ide claude-code` | `.mcp.json` or `claude mcp add` |
+| Warp | `--ide warp` | `.warp/mcp.json` |
+| Windsurf | `--ide windsurf` | `~/.codeium/windsurf/mcp_config.json` |
+| VS Code | `--ide vscode` | `.vscode/mcp.json` |
+| All | `--ide all` | All of the above |
+
+## Examples
+
+```bash
+# Auto-detect and configure
+theo mcp install
+
+# Configure for a specific IDE
+theo mcp install --ide cursor
+
+# Configure all IDEs
+theo mcp install --ide all
+```

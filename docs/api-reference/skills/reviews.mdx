@@ -1,0 +1,49 @@
+---
+title: "Skill Reviews"
+description: "Get and submit user reviews for a marketplace skill."
+api: "GET /api/v1/skills/{id}/reviews"
+---
+
+Get user reviews for a skill, or submit your own rating.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The skill UUID.
+</ParamField>
+
+## List Reviews (GET)
+
+```bash
+curl https://hitheo.ai/api/v1/skills/skill_abc123/reviews \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+Returns an array of review objects with `rating` (1–5), `body`, `authorUserId`, and `createdAt`.
+
+## Submit a Review (POST)
+
+<ParamField body="rating" type="integer" required>
+  Rating from 1 to 5.
+</ParamField>
+
+<ParamField body="body" type="string">
+  Review text (max 2,000 characters).
+</ParamField>
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/skills/skill_abc123/reviews \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"rating": 5, "body": "Great skill, saves hours of work!"}'
+```
+
+## Endpoint
+
+`GET /api/v1/skills/{id}/reviews`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

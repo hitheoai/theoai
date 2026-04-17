@@ -1,0 +1,41 @@
+---
+title: "Orchestration Pipeline"
+description: "How Theo processes every request through a 5-stage pipeline."
+---
+
+Theo is not a model proxy. Every API call passes through a multi-stage pipeline that handles classification, skill injection, model selection, tool execution, and response formatting.
+
+## The Five Stages
+
+```
+Request → Classify → Load Skills → Route Model → Agent Loop → Response
+```
+
+### 1. Intent Classification
+Determines the task type (`fast`, `think`, `code`, `image`, `research`, `roast`, etc.) using a multi-tier classification system. Skipped if you set `mode` explicitly.
+
+### 2. Skill Loading
+Loads domain expertise from two sources: the user's **installed skills** (persistent) and **per-request skills** (ephemeral `skills[]` array). Each skill injects system prompt extensions and tool definitions.
+
+### 3. Engine Routing
+Selects the optimal Theo engine based on the resolved mode. If the primary engine is unavailable, failover routes to the backup automatically.
+
+### 4. Agent Loop
+For requests with tools, Theo enters an iterative loop: the engine reasons, calls a tool, observes the result, and continues until done. For simple prompts with no tools, this collapses to a single call.
+
+### 5. Response
+The final output is formatted with content, engine metadata, tool execution log, artifacts, follow-up suggestions, and usage data. The request is billed, cached, and audited.
+
+## Performance
+
+| Scenario | Typical Latency |
+|----------|----------------|
+| Fast mode, no tools | ~500ms |
+| Think/code mode, no tools | 1-3s |
+| Agentic with tool calls | 2-5s |
+| Image generation | 5-15s |
+| Research (async) | 30-120s |
+
+## Pipeline Diagram
+
+See [How Theo Thinks](/introduction/how-theo-thinks) for the complete stage-by-stage breakdown with examples.

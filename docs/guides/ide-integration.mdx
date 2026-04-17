@@ -1,0 +1,35 @@
+---
+title: "IDE Integration"
+description: "Use Theo in Cursor, Claude Code, Warp, Windsurf, and VS Code via MCP."
+---
+
+Theo works inside every major agentic IDE through the **Model Context Protocol (MCP)**.
+
+## Quick Start
+
+```bash
+npm install -g @hitheo/sdk
+export THEO_API_KEY=theo_sk_...
+theo init
+```
+
+`theo init` automatically detects your IDEs and writes the correct MCP config.
+
+## Available Tools
+
+Once configured, your IDE agent has access to:
+
+| Tool | Description |
+|------|-------------|
+| `theo_complete` | General AI completion — auto-routes to best engine |
+| `theo_code` | Code generation — Theo Code engine, long-form output |
+| `theo_research` | Deep research with citations |
+| `theo_image` | Image generation — Theo Create engine |
+| `theo_document` | Document generation (PDF, DOCX, PPTX, XLSX, CSV) |
+| `theo_skill_list` | Browse the skill marketplace |
+| `theo_skill_install` | Install domain-specific skills |
+| `theo_status` | Check health and engine availability |
+
+## Manual IDE Setup
+
+<Snippet file="mcp-setup.mdx" />

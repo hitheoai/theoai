@@ -1,0 +1,92 @@
+---
+title: "List Models"
+description: "List all available Theo engine models and their capabilities."
+api: "GET /api/v1/models"
+---
+
+Returns the full registry of available Theo engines. Each model maps to a specific execution mode.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/models \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const models = await theo.models();
+
+for (const m of models) {
+  console.log(`${m.label} (${m.model_id}) — ${m.description}`);
+}
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="models" type="object[]">
+  Array of available models.
+
+  <Expandable title="Model object">
+    <ResponseField name="mode" type="string">The execution mode this model handles (e.g., `"fast"`, `"think"`, `"code"`).</ResponseField>
+    <ResponseField name="model_id" type="string">Theo-branded model ID (e.g., `"theo-1-flash"`).</ResponseField>
+    <ResponseField name="label" type="string">Human-readable name (e.g., `"Theo Flash"`).</ResponseField>
+    <ResponseField name="engine" type="string">Engine subsystem (e.g., `"theo-core"`).</ResponseField>
+    <ResponseField name="description" type="string">What the model is best at.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "models": [
+    {
+      "mode": "fast",
+      "model_id": "theo-1-flash",
+      "label": "Theo Flash",
+      "engine": "theo-core",
+      "description": "Fast, lightweight completions for simple tasks"
+    },
+    {
+      "mode": "think",
+      "model_id": "theo-1-reason",
+      "label": "Theo Reason",
+      "engine": "theo-core",
+      "description": "Deep reasoning and multi-step analysis"
+    },
+    {
+      "mode": "code",
+      "model_id": "theo-1-code",
+      "label": "Theo Code",
+      "engine": "theo-core",
+      "description": "Production-quality code generation optimized for long-form output"
+    },
+    {
+      "mode": "image",
+      "model_id": "theo-1-create",
+      "label": "Theo Create",
+      "engine": "theo-vision",
+      "description": "Photorealistic image generation"
+    },
+    {
+      "mode": "research",
+      "model_id": "theo-1-research",
+      "label": "Theo Research",
+      "engine": "theo-search",
+      "description": "Multi-step web research with source synthesis"
+    }
+  ]
+}
+```
+
+<Tip>
+  Use this endpoint to verify your API key is working — a successful response confirms authentication.
+</Tip>

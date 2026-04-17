@@ -1,0 +1,46 @@
+---
+title: "Skill Commands"
+description: "Scaffold, validate, and publish skills from the CLI."
+---
+
+## `theo skill init`
+
+Scaffolds a new skill project:
+
+```bash
+theo skill init [directory]
+```
+
+Creates `theo-skill.json` (manifest template) and `README.md`.
+
+## `theo skill validate`
+
+Validates a skill manifest:
+
+```bash
+theo skill validate [directory]
+```
+
+```
+[theo] ✓ Manifest is valid: "My Skill" v1.0.0
+[theo]   Category: productivity
+[theo]   Tools: 2
+[theo]   Permissions: read:artifacts, execute:tools
+[theo]   Review tier: staff (requires staff review)
+```
+
+## `theo skill publish`
+
+Submits a skill to the marketplace:
+
+```bash
+theo skill publish [directory]
+```
+
+Reads `theo-skill.json`, attaches `README.md`, validates, and submits for review.
+
+```
+[theo] Submitting "Insurance Quoting" v1.0.0...
+[theo] ✓ Submitted for review. You'll be notified when approved.
+[theo]   Review tier: staff
+```

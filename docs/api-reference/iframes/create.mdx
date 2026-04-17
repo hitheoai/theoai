@@ -1,0 +1,63 @@
+---
+title: "Create Iframe Widget"
+api: "POST /api/v1/iframes"
+description: "Create a new embeddable chat widget configuration linked to an API key."
+---
+
+## Request
+
+<ParamField body="api_key_id" type="string" required>
+  The API key ID to link this widget to. The widget uses this key's credits, Brand Soul, and allowed origins.
+</ParamField>
+
+<ParamField body="name" type="string" optional>
+  Display name for the widget. Default: `"My Widget"`.
+</ParamField>
+
+<ParamField body="appearance" type="object" optional>
+  Visual customization: `primaryColor`, `position` (`bottom-right` | `bottom-left`), `borderRadius`, `fontFamily`, custom CSS overrides.
+</ParamField>
+
+<ParamField body="behavior" type="object" optional>
+  Behavioral settings: `welcomeMessage`, `placeholder`, `maxPromptLength`, `enableFileUpload`, `enableVoice`, `strictAbuse` (enables rate-limiting heuristics).
+</ParamField>
+
+<ParamField body="security" type="object" optional>
+  Security settings: `requireTurnstile` (bot protection), `allowedOrigins` (domain allowlist override).
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  The widget config UUID. Use this as the `configId` in the embed script.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Widget display name.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  `"active"` or `"disabled"`.
+</ResponseField>
+
+<ResponseField name="embed_snippet" type="string">
+  Ready-to-use HTML `<script>` tag for embedding on your site.
+</ResponseField>
+
+## Authentication
+
+Requires a dashboard session.
+
+## Example
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/iframes \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key_id": "key_abc123",
+    "name": "Support Widget",
+    "appearance": { "primaryColor": "#715eac" },
+    "behavior": { "welcomeMessage": "Hi! How can I help?", "strictAbuse": true }
+  }'
+```

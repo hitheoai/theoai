@@ -1,0 +1,62 @@
+---
+title: "Personas & E.V.I."
+description: "Replace Theo's personality with your own branded AI assistant."
+---
+
+The `persona` parameter controls the base personality of every completion. An **E.V.I. (Embedded Virtual Intelligence)** is a pre-configured Theo client with a custom persona, skills, and tools baked in — your users interact with your brand, not Theo.
+
+## Persona Options
+
+| Value | Behavior |
+|-------|----------|
+| `"theo"` | Theo's default personality — a sarcastic, brilliant robot from Jupiter. Witty, confident, and genuinely helpful underneath the snark. |
+| `"none"` | Neutral assistant with no personality |
+| `{ system_prompt: "..." }` | Your custom persona — replaces Theo entirely |
+
+```typescript
+// Custom persona
+const res = await theo.complete({
+  prompt: "Draft a follow-up email",
+  persona: { system_prompt: "You are Eva, a professional CRM assistant for AcmeCorp." },
+});
+```
+
+## E.V.I. — The SDK Shortcut
+
+Instead of passing `persona`, `skills`, and `tools` on every request, create an E.V.I. instance:
+
+```typescript
+const evi = theo.evi({
+  persona: "You are Nova, an operations assistant for WarehouseOS. Professional, concise, proactive.",
+  skills: ["inventory-check", "data-extraction"],
+  tools: [
+    {
+      name: "check_stock",
+      description: "Look up current stock levels for a SKU",
+      input_schema: {
+        type: "object",
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
+    },
+  ],
+  defaultMode: "auto",
+});
+
+// Every call through the E.V.I. includes the persona, skills, and tools automatically
+const res = await evi.complete({ prompt: "Check stock levels for SKU-1234" });
+```
+
+## Three Levels
+
+1. **Persona only** — Replace Theo’s voice with your brand
+2. **Persona + Skills** — Add domain expertise (inventory, compliance, etc.)
+3. **Persona + Skills + Inline Tools** — Connect Theo to your product’s actions
+
+See the full [E.V.I. Guide](/guides/build-an-evi) for detailed examples of each level.
+
+## E.V.I. Canvas — The Visual Builder
+
+Prefer a visual approach? The **E.V.I. Canvas** is a drag-and-drop skill builder in the dashboard. Design node graphs with prompts, models, tools, knowledge, vision, and conditions — then compile, test, and publish without writing a manifest.
+
+See the [Canvas Guide](/guides/evi-canvas) and [Canvas SDK Reference](/sdk-reference/canvases).

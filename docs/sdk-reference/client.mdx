@@ -1,0 +1,113 @@
+---
+title: "Theo Client"
+description: "The main Theo class and all available methods."
+---
+
+The `Theo` class is the entry point for all API interactions.
+
+## Constructor
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+const theo = new Theo({ apiKey: "theo_sk_..." });
+```
+
+## Methods
+
+### Completions
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.complete(request)` | `CompletionResponse` | Run a completion (non-streaming) |
+| `theo.stream(request)` | `AsyncGenerator<StreamEvent>` | Stream a completion via SSE |
+
+### Media & Content
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.images(request)` | `ImageResponse` | Generate images |
+| `theo.video(request)` | `AsyncJobResponse` | Generate video (async — poll with `waitForJob`) |
+| `theo.code(request)` | `CodeResponse` | Generate code |
+| `theo.research(request)` | `AsyncJobResponse` | Run research (async — poll with `waitForJob`) |
+| `theo.documents(request)` | `DocumentResponse` | Generate documents (PDF, DOCX, etc.) |
+
+### Audio
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.tts(request)` | `ArrayBuffer` | Text-to-speech (returns audio bytes) |
+| `theo.stt(file, language?)` | `SttResponse` | Speech-to-text (accepts Blob/File) |
+
+### Skills
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.skills(filter?)` | `unknown[]` | List skills (`"installed"` or `"marketplace"`) |
+| `theo.installSkill(id)` | `void` | Install a marketplace skill |
+| `theo.uninstallSkill(id)` | `void` | Uninstall a skill |
+| `theo.createSkill(input)` | `unknown` | Create a custom skill |
+| `theo.submitSkill(manifest)` | `unknown` | Submit for marketplace review |
+| `theo.submissions(status?)` | `unknown[]` | List your submissions |
+| `theo.skillVersions(id)` | `unknown[]` | Get version history |
+
+### Workflows
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.workflows()` | `unknown[]` | List workflows |
+| `theo.createWorkflow(input)` | `unknown` | Create a workflow |
+| `theo.triggerWorkflow(id, data?)` | `unknown` | Trigger a workflow run |
+
+### Resources
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.models()` | `ModelInfo[]` | List available models |
+| `theo.tools()` | `unknown[]` | List available tools |
+| `theo.conversations()` | `unknown[]` | List conversations |
+| `theo.conversation(id)` | `unknown` | Get a specific conversation |
+| `theo.usage(params?)` | `unknown` | Get usage data |
+| `theo.health()` | `HealthResponse` | Check system health |
+
+### Jobs
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.job(jobId)` | `JobStatus` | Get job status |
+| `theo.waitForJob(jobId, interval?, maxWait?)` | `JobStatus` | Poll until complete/failed |
+
+### E.V.I.
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.evi(config)` | `EviInstance` | Create an E.V.I. instance |
+
+### E.V.I. Canvas
+Full reference: [`sdk-reference/canvases`](/sdk-reference/canvases).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.canvases()` | `CanvasRecord[]` | List the authenticated user's canvases |
+| `theo.canvas(id)` | `CanvasRecord` | Get a single canvas |
+| `theo.createCanvas(input)` | `CanvasRecord` | Create a canvas |
+| `theo.updateCanvas(id, input)` | `CanvasRecord` | Update a canvas |
+| `theo.deleteCanvas(id)` | `void` | Delete a canvas |
+| `theo.compileCanvas(id)` | `CanvasCompileResult` | Compile into `SkillManifest` + `WorkflowSteps` |
+| `theo.testCanvas(id, message, history?)` | `CanvasTestResult` | Sandbox test message |
+| `theo.publishCanvas(id, opts)` | `CanvasPublishResult` | Publish (private/org/public) |
+
+### Webhooks
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.listWebhooks()` | `unknown[]` | List org webhooks |
+| `theo.createWebhook(input)` | `unknown` | Create a webhook (returns `signing_secret` once) |
+| `theo.updateWebhook(id, input)` | `void` | Update URL / events / enabled / description |
+| `theo.deleteWebhook(id)` | `void` | Delete a webhook |
+| `theo.testWebhook(id)` | `void` | Send a test event |
+| `theo.webhookDeliveries(id)` | `unknown[]` | Recent delivery attempts |
+
+### Hooks
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.listHooks()` | `unknown[]` | List installed hooks |
+| `theo.createHook(input)` | `unknown` | Install a hook (preset or custom `event_pattern`) |
+| `theo.updateHook(id, input)` | `void` | Update config / enabled / cooldown |
+| `theo.deleteHook(id)` | `void` | Delete a hook |
+| `theo.hookExecutions(id)` | `unknown[]` | Execution history for a hook |
+
+### Events
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `theo.publishEvent(input)` | `unknown` | Publish a domain event (triggers matching hooks + webhooks) |

@@ -1,0 +1,52 @@
+---
+title: "Installation & Setup"
+description: "Install @hitheo/sdk and configure the Theo client."
+---
+
+## Install
+
+<CodeGroup>
+```bash npm
+npm install @hitheo/sdk
+```
+```bash yarn
+yarn add @hitheo/sdk
+```
+```bash pnpm
+pnpm add @hitheo/sdk
+```
+</CodeGroup>
+
+**Requirements:** Node.js 18+ (native `fetch` required). Works in Node.js, Deno, Bun, and edge runtimes.
+
+## Initialize
+
+```typescript
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({
+  apiKey: process.env.THEO_API_KEY!,
+});
+```
+
+## Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `apiKey` | `string` | **required** | Your `theo_sk_...` API key |
+| `baseUrl` | `string` | `"https://hitheo.ai"` | API base URL |
+| `timeoutMs` | `number` | `30000` | Request timeout in ms |
+| `maxRetries` | `number` | `2` | Retries on 429/5xx (exponential backoff) |
+
+## What's Included
+
+The SDK exports:
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `Theo` | class | Main client with all API methods |
+| `EviInstance` | class | E.V.I. wrapper (created via `theo.evi()`) |
+| `defineSkill` | function | Type-safe skill manifest builder |
+| `defineConfig` | function | Type-safe project config builder |
+| `TheoApiError` | class | Typed error with status, body, and details |
+| All types | interfaces | `CompletionRequest`, `CompletionResponse`, `StreamEvent`, etc. |

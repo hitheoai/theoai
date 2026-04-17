@@ -1,0 +1,73 @@
+---
+title: "List Deliveries"
+api: "GET /api/v1/webhooks/{id}/deliveries"
+description: "View recent delivery attempts for a webhook, including successes and failures."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+## Response
+
+Returns the 50 most recent delivery attempts, newest first.
+
+<ResponseField name="deliveries" type="array">
+  <Expandable title="Delivery object">
+    <ResponseField name="id" type="string">Delivery UUID</ResponseField>
+    <ResponseField name="event_type" type="string">The event type that was delivered</ResponseField>
+    <ResponseField name="http_status" type="number | null">HTTP status code from your server (null if connection failed)</ResponseField>
+    <ResponseField name="error_message" type="string | null">Error description on failure</ResponseField>
+    <ResponseField name="status" type="string">`success` or `failed`</ResponseField>
+    <ResponseField name="attempt" type="number">Which attempt this was (1 = first try, up to max retries + 1)</ResponseField>
+    <ResponseField name="failed_at" type="string | null">ISO 8601 timestamp</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID/deliveries \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+const deliveries = await theo.webhookDeliveries("WEBHOOK_ID");
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "deliveries": [
+    {
+      "id": "d1e2f3a4-...",
+      "event_type": "completion.created",
+      "http_status": 200,
+      "error_message": null,
+      "status": "success",
+      "attempt": 1,
+      "failed_at": "2026-04-15T12:01:00.000Z"
+    },
+    {
+      "id": "b5c6d7e8-...",
+      "event_type": "job.failed",
+      "http_status": 503,
+      "error_message": "HTTP 503",
+      "status": "failed",
+      "attempt": 4,
+      "failed_at": "2026-04-15T11:58:00.000Z"
+    }
+  ]
+}
+```
+
+<Tip>
+  Failed deliveries can be retried using the [retry endpoint](/api-reference/webhooks/retry).
+</Tip>

@@ -1,0 +1,62 @@
+---
+title: "Health Check"
+description: "Check system health — no authentication required."
+api: "GET /api/v1/health"
+---
+
+Public endpoint that returns the current health status of Theo's infrastructure and AI engine subsystems. **No authentication required.**
+
+<Note>
+  Health check results are cached for 30 seconds. The `X-Cache` header indicates `HIT` or `MISS`.
+</Note>
+
+## Request Example
+
+```bash
+curl https://hitheo.ai/api/v1/health
+```
+
+## Response
+
+<ResponseField name="status" type="string">
+  Overall system status: `"healthy"`, `"degraded"`, or `"down"`.
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  ISO 8601 timestamp of the health check.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  API version identifier (e.g., `"2026-03-28"`).
+</ResponseField>
+
+<ResponseField name="providers" type="object">
+  AI engine subsystem health.
+
+  <Expandable title="Provider health object">
+    Each key is a Theo subsystem name (e.g. `theo-core`, `theo-vision`, `theo-search`). Values contain:
+    <ResponseField name="status" type="string">`"healthy"`, `"degraded"`, `"down"`, or `"unconfigured"`.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-04-10T12:00:00.000Z",
+  "version": "2026-03-28",
+  "providers": {
+    "theo-core": { "status": "healthy" },
+    "theo-vision": { "status": "healthy" },
+    "theo-search": { "status": "healthy" }
+  }
+}
+```
+
+## Status Codes
+
+| Status | Meaning |
+|--------|--------|
+| 200 | System is healthy or degraded |
+| 503 | System is down — `Retry-After: 30` header included |

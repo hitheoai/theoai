@@ -1,0 +1,54 @@
+---
+title: "Run Workflow"
+description: "Trigger a manual workflow run."
+api: "POST /api/v1/workflows/{id}/run"
+---
+
+Manually trigger a workflow run, optionally passing override data.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The workflow UUID.
+</ParamField>
+
+## Request Body
+
+<ParamField body="triggerData" type="object">
+  Optional override data passed to the workflow steps (e.g., `{ "overridePrompt": "Focus on enterprise deals" }`).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/workflows/wf_abc123/run \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"triggerData": {"overridePrompt": "Focus on enterprise deals this week"}}'
+```
+
+```typescript SDK
+const run = await theo.triggerWorkflow("wf_abc123", {
+  overridePrompt: "Focus on enterprise deals this week",
+});
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="run" type="object">
+  The workflow run object with `id`, `status`, `startedAt`, and step results.
+</ResponseField>
+
+## Endpoint
+
+`POST /api/v1/workflows/{id}/run`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

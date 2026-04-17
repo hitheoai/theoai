@@ -1,0 +1,34 @@
+---
+title: "Get Skill"
+description: "Get details for a specific skill."
+api: "GET /api/v1/skills/{id}"
+---
+
+Retrieve full details for a skill by ID, including its manifest, install count, and review status.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The skill UUID.
+</ParamField>
+
+## Request Example
+
+```bash
+curl https://hitheo.ai/api/v1/skills/skill_abc123 \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+## Response
+
+Returns the full skill object including `id`, `name`, `slug`, `description`, `category`, `version`, `systemPromptExt`, `toolDefinitions`, `declaredPermissions`, `installCount`, `reviewStatus`, `authorUserId`, `readme`, `license`, `keywords`, `createdAt`, and `updatedAt`.
+
+## Endpoint
+
+`GET /api/v1/skills/{id}`
+
+Requires authentication via Bearer token. See [Authentication](/api-reference/authentication).

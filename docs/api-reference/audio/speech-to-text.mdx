@@ -1,0 +1,93 @@
+---
+title: "Speech to Text"
+description: "Transcribe audio files to text."
+api: "POST /api/v1/audio/stt"
+---
+
+Transcribe an audio file to text. Uses multipart form upload (not JSON). Maximum file size: 25 MB.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body (multipart/form-data)
+
+<ParamField body="file" type="Blob" required>
+  Audio file to transcribe. Supported formats: MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM.
+</ParamField>
+
+<ParamField body="language" type="string">
+  Language hint (ISO 639-1 code, e.g., `"en"`, `"es"`, `"fr"`). If omitted, language is auto-detected.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/audio/stt \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -F "file=@recording.mp3" \
+  -F "language=en"
+```
+
+```typescript SDK
+const file = new Blob([audioBytes], { type: "audio/mp3" });
+const result = await theo.stt(file, "en");
+
+console.log(result.text);             // Transcribed text
+console.log(result.language);         // Detected language
+console.log(result.duration_seconds); // Audio duration
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique transcription ID (prefixed `stt_`).
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="text" type="string">
+  The transcribed text.
+</ResponseField>
+
+<ResponseField name="language" type="string | null">
+  Detected or specified language.
+</ResponseField>
+
+<ResponseField name="duration_seconds" type="number | null">
+  Duration of the audio file in seconds.
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  <Expandable title="Usage object">
+    <ResponseField name="cost_cents" type="number">Cost in cents.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "stt_abc123",
+  "created": "2026-04-10T12:00:00Z",
+  "text": "Welcome to Theo. How can I help you today?",
+  "language": "en",
+  "duration_seconds": 3.2,
+  "usage": { "cost_cents": 0.01 }
+}
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_file` | `file` is required (multipart form upload) |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 502 | `stt_provider_error` | Theo transcription engine returned an error — retry |
+| 503 | `stt_unavailable` | STT is not configured on this instance |

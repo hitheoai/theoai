@@ -1,0 +1,44 @@
+---
+title: "Environment Variables"
+description: "Configuration via environment variables."
+---
+
+## Variables
+
+| Variable | Required | Default | Used By | Description |
+|----------|----------|---------|---------|-------------|
+| `THEO_API_KEY` | ✅ | — | CLI, SDK, MCP | Your `theo_sk_...` API key |
+| `THEO_BASE_URL` | — | `https://hitheo.ai` | CLI, SDK, MCP | Override API base URL |
+
+## Where They're Used
+
+- **CLI** — `theo complete`, `theo status`, `theo skill publish` all read `THEO_API_KEY`
+- **MCP Server** — The `@hitheo/mcp` server reads `THEO_API_KEY` on startup and injects it into every tool call
+- **SDK** — The SDK reads `THEO_API_KEY` when used via CLI; for programmatic use, pass the key directly:
+
+```typescript
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+```
+
+## Setting Variables
+
+<CodeGroup>
+
+```bash Shell
+export THEO_API_KEY=theo_sk_live_a1b2c3d4e5f6...
+```
+
+```bash .env file
+THEO_API_KEY=theo_sk_live_a1b2c3d4e5f6...
+THEO_BASE_URL=https://hitheo.ai
+```
+
+</CodeGroup>
+
+## Precedence
+
+1. Explicit constructor parameter (SDK) or CLI flag
+2. Environment variable
+3. `.env` file in the current directory
+
+Explicit values always override environment variables.

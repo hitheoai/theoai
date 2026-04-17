@@ -1,0 +1,159 @@
+---
+title: "Telegram Bot Setup"
+description: "Connect Theo to Telegram using the @hitheo/telegram adapter."
+---
+
+The `@hitheo/telegram` package connects Theo to Telegram as a bot. Users message your bot, Theo handles the response with the full orchestration pipeline, and the adapter replies through the Bot API.
+
+<Note>
+  Theo never hosts your bot. You create the bot with [@BotFather](https://t.me/BotFather), hold the token, and deploy this adapter on **your** infrastructure; Theo only processes the completion traffic the adapter forwards. That keeps every message, webhook URL, and credential under your control.
+</Note>
+
+## Prerequisites
+
+1. A Telegram bot token from [@BotFather](https://t.me/BotFather)
+2. A Theo API key (`theo_sk_...`)
+
+## Install
+
+<CodeGroup>
+```bash npm
+npm install @hitheo/telegram
+```
+```bash yarn
+yarn add @hitheo/telegram
+```
+```bash pnpm
+pnpm add @hitheo/telegram
+```
+</CodeGroup>
+
+## Quick Setup
+
+`createTelegramHandler` returns an async function that processes a single Telegram webhook update. Wire it into any HTTP framework — Express, Next.js route handlers, Cloudflare Workers, AWS Lambda, etc.
+
+```typescript
+import express from "express";
+import { createTelegramHandler } from "@hitheo/telegram";
+
+const app = express();
+app.use(express.json());
+
+const handle = createTelegramHandler({
+  theoApiKey: process.env.THEO_API_KEY!,
+  telegramToken: process.env.TELEGRAM_BOT_TOKEN!,
+  secretToken: process.env.TELEGRAM_WEBHOOK_SECRET, // optional but recommended
+  mode: "auto",
+  skills: ["customer-support"],
+  persona: "You are a helpful assistant for Acme Corp.",
+});
+
+app.post("/webhook", async (req, res) => {
+  try {
+    await handle(req.body, {
+      secretToken: req.header("X-Telegram-Bot-Api-Secret-Token"),
+    });
+    res.sendStatus(200);
+  } catch (err) {
+    // TelegramSignatureError indicates an unauthorized POST.
+    res.sendStatus(401);
+  }
+});
+
+app.listen(3000, () => console.log("Telegram bot listening on :3000"));
+```
+
+## How It Works
+
+1. User sends a message to your Telegram bot
+2. Telegram POSTs the update to your webhook URL
+3. The adapter verifies the `X-Telegram-Bot-Api-Secret-Token` header (when `secretToken` is configured)
+4. The adapter forwards the text (and any photo/document attachments) to `POST /api/v1/completions`, reusing the `conversation_id` associated with that chat
+5. Theo processes the request through the full pipeline (classification, skills, agent loop)
+6. The response is sent back to the Telegram chat, split into multiple messages if needed
+
+## Handler Config
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `theoApiKey` | `string` | ✅ | Your `theo_sk_...` API key |
+| `telegramToken` | `string` | ✅ | Bot token from BotFather |
+| `secretToken` | `string` | | Shared secret passed to `setWebhook`. When set, updates with a missing or mismatched header throw `TelegramSignatureError`. |
+| `theoBaseUrl` | `string` | | API base URL (default: `https://hitheo.ai`) |
+| `mode` | `ChatMode` | | Default mode — `auto`, `fast`, `think`, `code`, etc. |
+| `persona` | `PersonaInput` | | Custom persona or `"theo"` / `"none"` |
+| `skills` | `string[]` | | Skill slugs to activate on every message |
+| `conversationStore` | `ConversationStore` | | Map chat IDs → Theo conversation IDs. Defaults to an in-process `Map`; swap for Redis/DB across instances. |
+| `enableVoice` | `boolean` | | Transcribe voice/audio with Theo speech-to-text and append the transcript to the prompt. Off by default (STT adds cost). |
+| `maxChunkChars` | `number` | | Max chars per outbound message. Default 4000. |
+
+## Built-in Commands
+
+The adapter handles three commands itself (no Theo call):
+
+| Command | Behavior |
+|---------|----------|
+| `/start` | Sends an intro message |
+| `/help` | Lists commands |
+| `/reset` | Clears the stored `conversation_id` for this chat so the next message starts a fresh context |
+
+Any other `/foo` command returns a short "Unknown command" reply.
+
+## Attachments
+
+Photos attached to messages (and image documents) are downloaded inside the adapter and forwarded to Theo as **base64 image data** — the adapter never passes a Telegram file URL to Theo. This keeps the bot token inside your deployment.
+
+<Warning>
+  Always run the latest `@hitheo/telegram` release. If you are still on a `≤0.1.3` version, upgrade to `^0.1.4` and rotate the bot token via `@BotFather` as part of the upgrade.
+</Warning>
+
+Voice and audio messages are ignored unless you set `enableVoice: true`. When enabled, the adapter downloads the voice clip, runs it through Theo speech-to-text, and appends the transcript to the prompt as text. Voice is **not** sent as an attachment — Theo's completion endpoint only accepts image attachments.
+
+## Setting Up the Webhook
+
+Register your webhook URL with Telegram and include the `secret_token`:
+
+```bash
+curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-domain.com/webhook",
+    "secret_token": "'"$TELEGRAM_WEBHOOK_SECRET"'"
+  }'
+```
+
+## Conversation Persistence Across Instances
+
+The default `ConversationStore` is an in-process `Map` — fine for a single long-running server, wrong for serverless (each invocation is a fresh process). Provide your own store:
+
+```typescript
+import Redis from "ioredis";
+
+const redis = new Redis(process.env.REDIS_URL!);
+
+const handle = createTelegramHandler({
+  theoApiKey: process.env.THEO_API_KEY!,
+  telegramToken: process.env.TELEGRAM_BOT_TOKEN!,
+  conversationStore: {
+    get: (chatId) => redis.get(`tg:conv:${chatId}`),
+    set: async (chatId, id) => {
+      await redis.set(`tg:conv:${chatId}`, id, "EX", 60 * 60 * 24 * 30);
+    },
+    clear: async (chatId) => {
+      await redis.del(`tg:conv:${chatId}`);
+    },
+  },
+});
+```
+
+## Deploying
+
+Deploy as any Node.js HTTP server. For production:
+
+- **Railway / Render / Fly.io** — easiest for webhook-based bots
+- **Vercel / Cloudflare Workers** — serverless (one invocation per message); pair with a remote `conversationStore`
+- **Docker + PM2** — self-hosted
+
+<Tip>
+  Use `theo_sk_test_` keys during development to avoid billing.
+</Tip>

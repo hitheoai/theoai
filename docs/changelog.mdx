@@ -1,0 +1,71 @@
+---
+title: "Changelog"
+description: "Release notes and API changes."
+---
+
+## 2026-04-17
+
+### SDK 0.1.5 — Documentation
+- Doc-only patch. Synchronizes every package’s README on npm with the 0.1.4 runtime behavior and adds upgrade guidance for anyone still running `≤0.1.3`. No runtime changes.
+
+### SDK 0.1.4 — Security hardening
+<Warning>
+  Earlier releases contained security issues that have been addressed in 0.1.4. Upgrade all packages to the latest version, rotate any long-lived tokens used with `@hitheo/telegram@≤0.1.3`, and review your deployment against the current docs. Details on specific fixes are available to customers on request.
+</Warning>
+- Coordinated security release across `@hitheo/sdk`, `@hitheo/mcp`, `@hitheo/telegram`, and `@hitheo/whatsapp`. Upgrading is strongly recommended for all users.
+- Published npm tarballs now carry signed GitHub provenance attestations. Verify with `npm audit signatures @hitheo/sdk @hitheo/mcp @hitheo/telegram @hitheo/whatsapp`.
+- Minor CI hardening and internal dependency cleanup.
+
+### SDK 0.1.3
+- Documentation, SDK, and channel adapters updated to present a consistent Theo-branded surface throughout. Internal runbooks and architecture references now live outside the public docs repository.
+
+### SDK 0.1.2
+- **Registry hygiene** — `@hitheo/mcp`, `@hitheo/telegram`, and `@hitheo/whatsapp` now ship with full READMEs on npm.
+- **`@hitheo/sdk` README** — Security section refreshed; now points readers at per-key `allowed_origins` + [Security docs](/security/authentication).
+- **CI fix** — the publish pipeline now builds `@hitheo/sdk` before downstream matrix jobs, so telegram/whatsapp/mcp compile against a built SDK.
+
+### Documentation Expansion
+- **New API reference sections**: Webhooks (create/list/update/delete/test/deliveries/retry/rotate-secret/stats), Hooks (create/list), Iframes (create/list), Settings (get/update), Benchmarks (get), and E.V.I. Canvas (canvases/compile/test/publish).
+- **New guides**: [E.V.I. Canvas](/guides/evi-canvas), [Voice Integration](/guides/voice-integration), [Embed Widget](/guides/embed-widget), [Webhooks & Hooks](/guides/webhooks-and-hooks), and [Skills API](/guides/skills-api).
+- **New SDK reference page**: [`sdk-reference/canvases`](/sdk-reference/canvases) documents the full E.V.I. Canvas programmatic surface.
+- **`sdk-reference/client` method tables** extended to cover the Webhooks, Hooks, Events, and E.V.I. Canvas method groups.
+
+## 2026-04-15
+
+### SDK 0.1.1 — Packages Expanded
+- **`@hitheo/sdk`** bumped to 0.1.1 with new methods for E.V.I. Canvas (`canvases`, `canvas`, `createCanvas`, `updateCanvas`, `deleteCanvas`, `compileCanvas`, `testCanvas`, `publishCanvas`), Webhooks (`listWebhooks`, `createWebhook`, `updateWebhook`, `deleteWebhook`, `testWebhook`, `webhookDeliveries`), Hooks (`listHooks`, `createHook`, `updateHook`, `deleteHook`, `hookExecutions`), and Events (`publishEvent`).
+- **`@hitheo/telegram`** bumped to 0.1.1 — attachments (photo, voice, audio, document), pluggable conversation store, `X-Telegram-Bot-Api-Secret-Token` verification, chunked replies.
+- **`@hitheo/whatsapp`** bumped to 0.1.1 — media handling, HMAC `X-Hub-Signature-256` verification (`verifySignature`, `verifyWebhook` helpers), conversation store, chunked replies.
+- **`@hitheo/mcp`** bumped to 0.1.1 — tool catalog refresh, project-config loader (`theo.config.json|js|ts`).
+
+### NPM Packages Published
+- Published all four packages to npm under the `@hitheo` scope:
+  - [`@hitheo/sdk`](https://www.npmjs.com/package/@hitheo/sdk) v0.1.0 — TypeScript SDK + CLI
+  - [`@hitheo/mcp`](https://www.npmjs.com/package/@hitheo/mcp) v0.1.0 — MCP server for IDE agents
+  - [`@hitheo/telegram`](https://www.npmjs.com/package/@hitheo/telegram) v0.1.0 — Telegram bot adapter
+  - [`@hitheo/whatsapp`](https://www.npmjs.com/package/@hitheo/whatsapp) v0.1.0 — WhatsApp Cloud API adapter
+- All packages are pure ESM with TypeScript declarations
+- Install: `npm install @hitheo/sdk`, `pnpm add @hitheo/sdk`, `yarn add @hitheo/sdk`
+- CLI available globally: `npm install -g @hitheo/sdk` → `theo init`
+
+## 2026-04-10
+
+### Documentation Launch
+- Published comprehensive documentation at docs.hitheo.ai
+- Full API reference with OpenAPI 3.1 spec
+- SDK, CLI, and MCP reference guides
+- Skills deep dive with marketplace authoring guide
+- 10+ guides covering E.V.I., IDE integration, workflows, and more
+
+## 2026-03-28
+
+### API v1 Release
+- Core completions API with multi-model routing
+- Skill marketplace with automated review pipeline
+- E.V.I. (Embedded Virtual Intelligence) support
+- SDK (`@hitheo/sdk`), CLI, and MCP server (`@hitheo/mcp`)
+- Channel adapters for Telegram and WhatsApp
+- Workflow automation with schedules and event triggers
+- Image, video, code, research, and document generation
+- Audio TTS/STT
+- Per-token billing with credit system

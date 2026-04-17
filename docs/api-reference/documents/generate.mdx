@@ -1,0 +1,108 @@
+---
+title: "Generate Document"
+description: "Generate PDF, DOCX, PPTX, XLSX, or CSV documents from natural language."
+api: "POST /api/v1/documents"
+---
+
+Generate structured documents from a natural language prompt. Supports PDF, DOCX, PPTX, XLSX, and CSV formats.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="prompt" type="string" required>
+  Description of the document to generate.
+</ParamField>
+
+<ParamField body="format" type="string" default="pdf">
+  Output format. One of: `pdf`, `docx`, `pptx`, `xlsx`, `csv`.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/documents \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Create a Q1 2026 sales report with executive summary and charts",
+    "format": "pdf"
+  }'
+```
+
+```typescript SDK
+const res = await theo.documents({
+  prompt: "Create a Q1 2026 sales report with executive summary and charts",
+  format: "pdf",
+});
+
+console.log(res.title);        // "Q1 2026 Sales Report"
+console.log(res.download_url); // Presigned download URL
+console.log(res.content);      // Document text content
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique document ID (prefixed `doc_`).
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="format" type="string">
+  The output format (e.g., `"pdf"`).
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Auto-generated document title.
+</ResponseField>
+
+<ResponseField name="download_url" type="string | null">
+  Presigned URL to download the document file. May be `null` if file generation is still processing.
+</ResponseField>
+
+<ResponseField name="size_bytes" type="integer | null">
+  File size in bytes.
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  Text content of the generated document.
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  <Expandable title="Usage object">
+    <ResponseField name="cost_cents" type="number">Cost in cents.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "doc_abc123",
+  "created": "2026-04-10T12:00:00Z",
+  "format": "pdf",
+  "title": "Q1 2026 Sales Report",
+  "download_url": "https://artifacts.hitheo.ai/docs/abc123.pdf?token=...",
+  "size_bytes": 245760,
+  "content": "# Q1 2026 Sales Report\n\n## Executive Summary\n...",
+  "usage": { "cost_cents": 0.12 }
+}
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_prompt` | `prompt` is required |
+| 400 | `invalid_format` | Unsupported format. Supported: `pdf`, `docx`, `pptx`, `xlsx`, `csv` |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 429 | `rate_limit_exceeded` | Too many requests |

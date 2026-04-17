@@ -1,0 +1,57 @@
+---
+title: "Update Webhook"
+api: "PATCH /api/v1/webhooks/{id}"
+description: "Update the URL, event types, or enabled state of a webhook."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+## Request
+
+All fields are optional — include only the fields you want to change.
+
+<ParamField body="url" type="string">
+  New endpoint URL. Subject to SSRF validation.
+</ParamField>
+
+<ParamField body="event_types" type="string[]">
+  New set of subscribed event types.
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  Enable or disable the webhook. Disabled webhooks skip delivery.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X PATCH https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "event_types": ["*"], "enabled": true }'
+```
+
+```typescript SDK
+await theo.updateWebhook("WEBHOOK_ID", {
+  event_types: ["*"],
+  enabled: true,
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{ "updated": true }
+```

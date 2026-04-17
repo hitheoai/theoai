@@ -1,0 +1,71 @@
+---
+title: "Completions & Streaming"
+description: "Create completions and stream responses token-by-token."
+---
+
+## `theo.complete(request)`
+
+Sends a prompt through the full orchestration pipeline and returns the complete response.
+
+```typescript
+const res = await theo.complete({
+  prompt: "Explain microservices architecture",
+  mode: "auto",           // or "fast", "think", "code", "research", etc.
+  skills: ["deep-research"],
+  conversation_id: "conv_abc123",  // optional — continue a conversation
+  persona: { system_prompt: "You are a senior architect..." },
+  tools: [/* inline tool definitions */],
+  temperature: 0.7,
+  max_iterations: 8,
+  metadata: { source: "my-app" },
+});
+
+console.log(res.content);          // Generated text
+console.log(res.model.label);      // "Theo Reason"
+console.log(res.resolved_mode);    // "think"
+console.log(res.tools_used);       // [{ name: "...", status: "success" }]
+console.log(res.usage.cost_cents); // 0.15
+```
+
+### CompletionRequest
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `prompt` | `string` | ✅ | — | The prompt text |
+| `mode` | `ChatMode` | — | `"auto"` | Execution mode |
+| `conversation_id` | `string` | — | — | Continue a conversation |
+| `skills` | `string[]` | — | — | Skill slugs to activate |
+| `tools` | `ToolDef[]` | — | — | Inline tool definitions |
+| `persona` | `PersonaInput` | — | `"theo"` | Persona override |
+| `temperature` | `number` | — | — | Sampling temperature |
+| `max_iterations` | `number` | — | `8` | Max agent loop iterations |
+| `stream` | `boolean` | — | `false` | Enable SSE streaming |
+| `model_overrides` | `Record<string, string>` | — | — | Override model per mode |
+| `metadata` | `Record<string, unknown>` | — | — | Custom metadata |
+
+## `theo.stream(request)`
+
+Returns an `AsyncGenerator<StreamEvent>` for real-time token delivery.
+
+```typescript
+for await (const event of theo.stream({ prompt: "Write a poem" })) {
+  switch (event.type) {
+    case "meta":  console.log("Mode:", (event.data as any).resolved_mode); break;
+    case "token": process.stdout.write(event.token!); break;
+    case "tool":  console.log("Tool:", (event.data as any).name); break;
+    case "done":  console.log("\nDone"); break;
+  }
+}
+```
+
+### StreamEvent Types
+
+| Type | Data | Description |
+|------|------|-------------|
+| `meta` | Model info, mode, skills | Emitted first |
+| `token` | `{ token: string }` | Each generated token |
+| `tool` | Tool call info | Tool was invoked |
+| `artifact` | File/image data | Generated artifact |
+| `genui_meta` | Component library info | GenUI mode metadata |
+| `done` | Full response + usage | Final event |
+| `error` | Error details | Processing error |

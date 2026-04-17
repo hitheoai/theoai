@@ -1,0 +1,132 @@
+---
+title: "Voice Integration"
+description: "Add real-time voice conversations to your app using Theo's voice API."
+---
+
+Theo's voice system enables real-time conversational AI with speech-to-text,
+text-to-speech, and live tool calling. Voice sessions share the same
+persona, skills, and tools that power text completions, so a single
+API key can drive both surfaces.
+
+## How it works
+
+A voice session is a streaming connection between your client and the
+Theo voice runtime. Your app:
+
+1. Captures microphone audio in the browser (or on device).
+2. Requests a short-lived session token from Theo.
+3. Opens the streaming voice connection using that token and plays back
+   Theo's audio response as it arrives.
+
+Theo handles transcription, orchestration (persona, skills, tools,
+memory), and text-to-speech behind the token. The client never talks to
+any upstream model — every call is mediated by the Theo voice runtime.
+
+## Getting a Voice Token
+
+Before starting a voice session, request a session token:
+
+```bash
+curl -X POST https://api.hitheo.ai/api/v1/voice/token \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The response includes:
+
+```json
+{
+  "token": "theo_voice_...",
+  "expiresAt": "2026-04-16T22:00:00Z",
+  "systemInstruction": "…Theo voice persona…",
+  "tools": [ { "functionDeclarations": [] } ]
+}
+```
+
+<Note>
+  The token endpoint returns `systemInstruction` and `tools` alongside the
+  token as a Theo platform contract. Your client MUST attach both when it
+  opens the live voice connection — otherwise the session starts without
+  the Theo persona and with no tool access.
+</Note>
+
+The `systemInstruction` carries the Theo voice persona, platform context,
+runtime protocol, and tool-usage guidance (plus memory and skill context
+when present). The `tools` array includes every declared voice tool
+(`generate_image`, `generate_video`, `deep_research`, `generate_code`,
+`generate_document`, `save_memory`) and any installed skill tools
+namespaced as `skill_{slug}_{toolName}`.
+
+Voice selection is optional. Available voice identifiers are listed in
+the dashboard under **Settings → Voice**.
+
+## Transcription (STT)
+
+Send audio for transcription via the STT endpoint:
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/audio/stt \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -F "file=@recording.webm" \
+  -F "language=en"
+```
+
+Returns `{ "text": "transcribed text" }`.
+
+Supported formats: WebM, MP3, WAV, M4A, OGG. Max file size: 25MB.
+
+## Text-to-Speech (TTS)
+
+Convert text to audio:
+
+```bash
+curl -X POST https://hitheo.ai/api/v1/audio/tts \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "Hello!", "voice": "theo-voice-warm" }' \
+  --output response.mp3
+```
+
+Voice selection is optional. See the [TTS reference](/api-reference/audio/text-to-speech) for the full list of Theo voice identifiers.
+
+## Skill Tools in Voice
+
+E.V.I. skills with tool definitions are automatically available in voice
+sessions. The skill bridge exposes each skill's tools to the voice
+runtime as function declarations:
+
+- Tool names are namespaced as `skill_{slug}_{toolName}` to avoid collisions.
+- Input schemas declared in the skill manifest are forwarded to the voice runtime.
+- When the voice session calls a skill tool, Theo routes it to your skill's tool executor and feeds the result back into the live session.
+
+## Voice Actions
+
+During a live session, tools may fire mid-turn. Theo routes those calls
+to:
+
+```
+POST /api/v1/voice/action
+```
+
+This endpoint executes the tool call (skill tool, web search, memory
+lookup, code generation) and returns the result to the live session so
+Theo can incorporate it into its response.
+
+## Example Flow
+
+```
+User speaks → WebM audio blob
+  → POST /api/v1/audio/stt → "What's the status of my latest order?"
+  → Theo voice session (with customer-support skill tools)
+  → Voice session calls skill_customer-support_lookup_order tool
+  → POST /api/v1/voice/action → tool result
+  → Voice session generates response with order status
+  → POST /api/v1/audio/tts → audio response
+  → Play audio to user
+```
+
+## API Reference
+
+- [Speech to Text](/api-reference/audio/speech-to-text)
+- [Text to Speech](/api-reference/audio/text-to-speech)

@@ -1,0 +1,46 @@
+---
+title: "Publishing to the Marketplace"
+description: "Submit skills for review and distribution."
+---
+
+## Submission Flow
+
+1. **Author** — Use `defineSkill()` or `theo skill init`
+2. **Validate** — `theo skill validate`
+3. **Submit** — `theo skill publish` or `POST /api/v1/skills/submit`
+4. **Review** — Automated checks + risk-based manual review
+5. **Publish** — Approved skills appear in the marketplace
+
+## Via CLI
+
+```bash
+theo skill publish
+```
+
+## Via API
+
+```typescript
+const result = await theo.submitSkill(manifest);
+console.log(result.status);      // "approved" | "pending_review"
+console.log(result.reviewTier);  // "auto" | "staff" | "security"
+```
+
+## Via E.V.I. Canvas
+
+Build skills visually in the dashboard canvas editor, then publish directly:
+
+1. Open **Dashboard → Skills → Canvas**
+2. Design your skill graph (prompts, models, tools, knowledge, vision nodes)
+3. Click **Compile** to validate
+4. Click **Test** to try it in the sandbox
+5. Click **Publish** and choose visibility: **Private**, **My Organization**, or **Public Marketplace**
+
+See the [Canvas Guide](/guides/evi-canvas) for the full walkthrough.
+
+## Visibility Tiers
+
+When publishing (via Canvas, CLI, or API), skills support three visibility levels:
+
+- **Private** — Only the author can see and install the skill.
+- **Organization** — Scoped to a specific org. All org members can discover and install it, but it’s not listed publicly.
+- **Public** — Listed in the Skill Store marketplace for all Theo users.

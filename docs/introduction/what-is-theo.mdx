@@ -1,0 +1,92 @@
+---
+title: "What is Theo?"
+description: "AI orchestration API — one call, every model, full pipeline."
+---
+
+Theo is an **AI orchestration engine** exposed as a developer API. Instead of calling individual model providers and building your own classification, routing, tool execution, and billing infrastructure, you call `POST /api/v1/completions` and Theo handles everything.
+
+## What Theo Does
+
+When you send a prompt to Theo, a multi-stage pipeline runs automatically:
+
+1. **Intent Classification** — Determines what kind of task the prompt is (code, research, image, etc.)
+2. **Skill Loading** — Loads domain expertise packages (installed + per-request) that inject system prompt extensions and tool definitions
+3. **Model Routing** — Selects the optimal Theo engine for the task, with automatic failover
+4. **Agent Loop** — Iteratively reasons, calls tools, and feeds results back until the task is complete
+5. **Response** — Returns formatted content with engine info, tool execution log, artifacts, follow-up suggestions, and usage data
+
+All of this happens in one API call.
+
+## Key Capabilities
+
+<CardGroup cols={2}>
+  <Card title="Completions" icon="message" href="/api-reference/completions/create">
+    Multi-model AI completions with automatic intent classification and routing.
+  </Card>
+  <Card title="Skills" icon="puzzle-piece" href="/skills/overview">
+    Installable packages of domain knowledge and tools — like apps for AI.
+  </Card>
+  <Card title="E.V.I." icon="robot" href="/guides/build-an-evi">
+    Embed Theo into your product with a custom persona. Your users see your brand, not Theo.
+  </Card>
+  <Card title="Code Generation" icon="code" href="/api-reference/code/generate">
+    Theo Code engine with an extended output budget for long-form, best-in-class code.
+  </Card>
+  <Card title="Image Generation" icon="image" href="/api-reference/images/generate">
+    Theo Create engine for photorealistic images with automatic fallback.
+  </Card>
+  <Card title="Research" icon="magnifying-glass" href="/api-reference/research/create">
+    Deep web research with source synthesis and citations.
+  </Card>
+  <Card title="Documents" icon="file" href="/api-reference/documents/generate">
+    Generate PDFs, DOCX, PPTX, XLSX, and CSV files.
+  </Card>
+  <Card title="Workflows" icon="diagram-project" href="/api-reference/workflows/create">
+    Multi-step automations with schedules, event triggers, and conditional logic.
+  </Card>
+</CardGroup>
+
+## Architecture at a Glance
+
+```
+Your App → @hitheo/sdk → Theo API (api.hitheo.ai)
+                              │
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+              Classifier  Skill     Model
+                          Loader    Router
+                              │
+                              ▼
+                         Agent Loop
+                    (think → act → observe)
+                              │
+                              ▼
+                    Response + Billing + Audit
+```
+
+## Who It's For
+
+- **Product developers** embedding AI into their apps via the SDK or REST API
+- **Agencies and SaaS companies** building branded AI assistants (E.V.I.) for their customers
+- **Skill authors** creating and monetizing domain-specific AI capabilities on the marketplace
+
+## How to Get Started
+
+<Steps>
+  <Step title="Get an API key">
+    Sign up at [api.hitheo.ai](https://api.hitheo.ai) and create a key from the dashboard. Keys are prefixed `theo_sk_`.
+  </Step>
+  <Step title="Make your first call">
+    ```bash
+    curl -X POST https://hitheo.ai/api/v1/completions \
+      -H "Authorization: Bearer theo_sk_..." \
+      -H "Content-Type: application/json" \
+      -d '{"prompt": "Explain quantum computing in one paragraph", "mode": "auto"}'
+    ```
+  </Step>
+  <Step title="Install the SDK">
+    ```bash
+    npm install @hitheo/sdk
+    ```
+  </Step>
+</Steps>

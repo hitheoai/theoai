@@ -1,0 +1,47 @@
+---
+title: "Retry Delivery"
+api: "POST /api/v1/webhooks/{id}/deliveries/{deliveryId}/retry"
+description: "Re-dispatch a failed delivery's stored payload to the webhook endpoint."
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The webhook UUID.
+</ParamField>
+
+<ParamField path="deliveryId" type="string" required>
+  The delivery UUID from the [delivery log](/api-reference/webhooks/deliveries).
+</ParamField>
+
+## Behavior
+
+Re-dispatches the original event payload stored in the delivery log. The retry uses the webhook's current URL and signing secret — if either was changed since the original delivery, the retry uses the updated values.
+
+## Example
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/webhooks/WEBHOOK_ID/deliveries/DELIVERY_ID/retry \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+```typescript SDK
+// Use the REST API directly — retry is not yet in the SDK
+await fetch(`https://hitheo.ai/api/v1/webhooks/${webhookId}/deliveries/${deliveryId}/retry`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${apiKey}` },
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "retried": true,
+  "delivery_id": "b5c6d7e8-..."
+}
+```

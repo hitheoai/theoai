@@ -1,0 +1,29 @@
+---
+title: "Skill Activation"
+description: "Enable skills in the Playground."
+---
+
+Toggle installed skills on/off in the Playground sidebar. Active skills inject their system prompt extensions and tool definitions into the pipeline.
+
+## How It Works
+
+1. Open the **Skills** panel in the Playground sidebar
+2. Your installed skills are listed with toggle switches
+3. **Enable** a skill to include it in the next completion
+4. **Disable** a skill to exclude it (without uninstalling)
+
+Active skills are visible in the `meta` event during streaming, so you can see exactly which skills contributed to each response.
+
+## Installing New Skills
+
+You can browse and install new skills from the marketplace directly within the Playground:
+
+1. Click **Browse Marketplace** in the Skills panel
+2. Search or filter by category
+3. Click **Install** to add a skill
+4. The skill becomes immediately available for activation
+
+## Per-Request vs. Installed
+
+- **Installed skills** (toggled on) are active on every request from the Playground
+- Use the `skills` parameter in the API to activate skills on a per-request basis without installing them

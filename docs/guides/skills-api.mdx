@@ -1,0 +1,118 @@
+---
+title: "Activating Skills via API"
+description: "How to find skill slugs, pass them in API calls, and use them from the SDK."
+---
+
+Skills extend Theo with specialized capabilities — domain knowledge, custom tools, prompt extensions, and model preferences. You can activate skills on any completion request by passing their **slug**.
+
+## Finding a Skill Slug
+
+Every skill has a unique slug (e.g., `customer-support`, `code-review`, `deep-research`).
+
+**In the Dashboard:**
+1. Go to **Skills → Marketplace** or **My Skills**.
+2. Each skill card displays its slug — click the copy icon to copy it.
+
+**Via API:**
+
+```bash
+# List all marketplace skills
+curl -H "Authorization: Bearer $THEO_API_KEY" \
+  https://hitheo.ai/api/v1/skills
+
+# List your installed skills
+curl -H "Authorization: Bearer $THEO_API_KEY" \
+  "https://hitheo.ai/api/v1/skills?filter=installed"
+```
+
+Both return a `skills` array. Each object includes `slug`, `name`, `description`, and `category`.
+
+**In the E.V.I. Canvas:**
+When you open the Input node with **API Call** trigger, the canvas shows the skill's slug with a **Copy** button. If the canvas hasn't been published yet, it shows the draft slug preview.
+
+## Using Skills in a Completion
+
+Pass one or more slugs in the `skills` array:
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/completions \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Summarize recent support tickets for this customer",
+    "skills": ["customer-support"]
+  }'
+```
+
+```typescript SDK
+import { Theo } from "@hitheo/sdk";
+
+const theo = new Theo({ apiKey: process.env.THEO_API_KEY! });
+
+const res = await theo.complete({
+  prompt: "Summarize recent support tickets for this customer",
+  skills: ["customer-support"],
+});
+```
+
+```python Python (requests)
+import requests
+
+res = requests.post(
+    "https://hitheo.ai/api/v1/completions",
+    headers={"Authorization": f"Bearer {THEO_API_KEY}"},
+    json={
+        "prompt": "Summarize recent support tickets for this customer",
+        "skills": ["customer-support"],
+    },
+)
+```
+
+</CodeGroup>
+
+## How It Works
+
+When you pass `skills`:
+
+1. **Slug resolution** — Theo looks up each slug and loads the skill's manifest (prompt extension, tools, model preference).
+2. **Merge with installed skills** — The requested skills are merged with any skills you already have installed and enabled.
+3. **Prompt injection** — Each active skill's system prompt extension is injected into the request context, ordered by priority and intensity.
+4. **Tool aggregation** — Tools declared by active skills become available to the agent loop.
+5. **Model preference** — If a skill specifies a preferred model (e.g., `theo-1-reason` for deep analysis), Theo may route to that model.
+
+## Multiple Skills
+
+You can activate multiple skills simultaneously:
+
+```json
+{
+  "prompt": "Extract data from the attached ACORD 125 form and run a compliance check",
+  "skills": ["data-extraction", "insurance-compliance"]
+}
+```
+
+Skills are applied in the order listed. If skills have conflicting model preferences, the first skill's preference takes precedence.
+
+## Skills You Don't Have Installed
+
+You can pass the slug of **any public skill** in the `skills` array — you don't need to install it first. Installing a skill means it's automatically included in every request; passing it in `skills` activates it for a single request.
+
+## Building Your Own Skill
+
+See [Build with the E.V.I. Canvas](/guides/evi-canvas) to create skills visually, or use the SDK:
+
+```typescript
+import { defineSkill } from "@hitheo/sdk";
+
+export default defineSkill({
+  name: "my-custom-skill",
+  tools: [myTool],
+  knowledge: ["./docs/*.md"],
+});
+
+// Publish: npx theo publish
+```
+
+After publishing, your skill's slug is available for use in `skills` arrays immediately.

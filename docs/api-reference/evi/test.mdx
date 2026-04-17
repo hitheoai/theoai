@@ -1,0 +1,43 @@
+---
+title: "Test Canvas"
+description: "Send a test message through a compiled E.V.I. canvas in sandbox mode."
+---
+
+```http
+POST /api/v1/evi/canvases/{id}/test
+Authorization: Bearer theo_sk_...
+Content-Type: application/json
+
+{
+  "message": "Check stock for SKU-1234",
+  "history": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "Hi! How can I help?" }
+  ]
+}
+```
+
+Compiles the canvas (or uses cached compilation) and sends a test message through the sandbox. Tool calls are simulated with mock data — no real external requests are made.
+
+## Parameters
+
+- `message` (string, required) — The test message (max 4000 chars).
+- `history` (array, optional) — Up to 10 previous messages for multi-turn testing. Each has `role` ("user" or "assistant") and `content`.
+
+## Response
+
+```json
+{
+  "response": "SKU-1234 currently has 47 units in stock...",
+  "cost_cents": 5
+}
+```
+
+## Sandbox Constraints
+
+- No real external HTTP requests
+- Tool calls return simulated mock data
+- Responses are concise for testing
+- Credits are debited at the standard rate
+
+Returns `422` if the canvas fails compilation.

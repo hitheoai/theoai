@@ -1,0 +1,53 @@
+---
+title: "Billing & Credits"
+description: "Per-token billing, credit management, and spending caps."
+---
+
+Theo uses per-token billing with a credit system. 1 credit = 1 cent.
+
+## How Credits Work
+
+Every API call consumes credits based on the tokens processed. The cost depends on which Theo engine handles the request:
+
+| Engine | Cost | Best For |
+|--------|------|----------|
+| Theo Flash (`fast`) | Lowest | Simple Q&A, classification |
+| Theo Reason (`think`) | Medium | Deep reasoning, analysis |
+| Theo Code (`code`) | Medium-High | Code generation |
+| Theo Create (`image`) | Per-image | Image generation |
+| Theo Research (`research`) | Variable | Web research |
+
+- **Cache hits cost 0 credits** — identical cached requests are free
+- **Usage is tracked in real-time** in the dashboard
+- Credits are deducted immediately after each completion
+
+## Add Credits
+
+1. Navigate to **Billing** in the dashboard sidebar
+2. Click **Add Credits**
+3. Choose an amount or set up auto-top-up
+4. Complete payment via the secure billing portal
+
+## Spending Caps
+
+Protect against unexpected charges by setting spending limits:
+
+- **Daily cap** — maximum credit spend per day
+- **Monthly cap** — maximum credit spend per billing cycle
+- **Per-key caps** — limit individual API keys independently
+
+When a cap is reached, requests return `402 insufficient_credits` until the cap resets or is raised.
+
+## Monitoring
+
+- Real-time credit balance in the dashboard header
+- Per-request cost visible in every API response (`usage.cost_cents`)
+- Historical cost breakdown in [Usage & Analytics](/dashboard/usage-analytics)
+- Alerts when balance drops below a configurable threshold
+
+## Test vs. Production Keys
+
+| Key Prefix | Billing | Rate Limits |
+|------------|---------|-------------|
+| `theo_sk_test_` | No billing | Lower limits |
+| `theo_sk_live_` | Billed per token | Full limits |

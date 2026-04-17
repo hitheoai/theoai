@@ -1,0 +1,69 @@
+---
+title: "Get Your API Key"
+description: "Create a Theo API key to start making requests."
+---
+
+## Create an Account
+
+1. Go to [api.hitheo.ai](https://api.hitheo.ai)
+2. Sign up with your email or social login
+3. You'll land on the API dashboard
+
+## Generate a Key
+
+1. Navigate to **API Keys** in the sidebar
+2. Click **Create Key**
+3. Give your key a descriptive name (e.g., "Production", "Development")
+4. Copy the key immediately — it won't be shown again
+
+Your key will look like:
+
+```
+theo_sk_a1b2c3d4e5f6...
+```
+
+<Warning>
+  Store your API key securely. Never commit it to source control or expose it in client-side code. Use environment variables instead.
+</Warning>
+
+## Set the Environment Variable
+
+```bash
+export THEO_API_KEY=theo_sk_a1b2c3d4e5f6...
+```
+
+Or add it to your `.env` file:
+
+```env
+THEO_API_KEY=theo_sk_a1b2c3d4e5f6...
+```
+
+## Verify It Works
+
+```bash
+curl https://hitheo.ai/api/v1/health
+```
+
+This endpoint is public (no auth required) and returns system status. To verify your key specifically:
+
+```bash
+curl https://hitheo.ai/api/v1/models \
+  -H "Authorization: Bearer $THEO_API_KEY"
+```
+
+You should get back a list of available Theo engine models.
+
+## Key Format
+
+All API keys use the `theo_sk_` prefix. Keys are production keys — all usage is billed against your credit balance.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Make Your First Call" icon="terminal" href="/quickstart/first-completion">
+    Send your first completion request with curl.
+  </Card>
+  <Card title="Install the SDK" icon="npm" href="/quickstart/install-sdk">
+    Set up the TypeScript SDK for a better developer experience.
+  </Card>
+</CardGroup>

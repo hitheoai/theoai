@@ -1,0 +1,76 @@
+---
+title: "Images, Video, Code, Research, Documents"
+description: "SDK methods for media generation and content creation."
+---
+
+## Images
+
+```typescript
+const res = await theo.images({
+  prompt: "A minimalist tech logo, blue and white",
+  style: "photorealistic",
+  aspect_ratio: "1:1",
+  count: 2,
+});
+
+for (const img of res.images) {
+  console.log(img.url, img.engine);
+}
+```
+
+## Video (Async)
+
+Video generation is asynchronous. The API returns a job ID to poll.
+
+```typescript
+const job = await theo.video({
+  prompt: "A 5-second animation of a rocket launch",
+  duration: "5s",
+  style: "cinematic",
+});
+
+// Poll until complete
+const result = await theo.waitForJob(job.job_id);
+console.log(result.result); // Video URL
+```
+
+## Code
+
+```typescript
+const res = await theo.code({
+  prompt: "Write a TypeScript Express middleware for JWT auth",
+  language: "typescript",
+  framework: "express",
+});
+
+console.log(res.content);    // Generated code
+console.log(res.artifacts);  // Any files created
+```
+
+## Research (Async)
+
+Research is asynchronous — it involves web searching and source synthesis.
+
+```typescript
+const job = await theo.research({
+  prompt: "Compare React, Vue, and Svelte for enterprise apps in 2026",
+  depth: "advanced",
+  max_sources: 10,
+});
+
+const result = await theo.waitForJob(job.job_id, 3000, 120_000);
+console.log(result.result); // Full research report with citations
+```
+
+## Documents
+
+```typescript
+const res = await theo.documents({
+  prompt: "Create a Q1 2026 sales report with executive summary",
+  format: "pdf",  // or "docx", "pptx", "xlsx", "csv"
+});
+
+console.log(res.title);         // "Q1 2026 Sales Report"
+console.log(res.download_url);  // Presigned S3 URL
+console.log(res.content);       // Document text content
+```

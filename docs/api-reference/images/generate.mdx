@@ -1,0 +1,119 @@
+---
+title: "Generate Images"
+description: "Generate images from text prompts using the Theo Create engine."
+api: "POST /api/v1/images"
+---
+
+Generate one or more images from a text prompt. This is a synchronous endpoint — images are returned directly in the response.
+
+## Authentication
+
+Requires a Bearer token. See [Authentication](/api-reference/authentication).
+
+## Request Body
+
+<ParamField body="prompt" type="string" required>
+  Text description of the image(s) to generate.
+</ParamField>
+
+<ParamField body="style" type="string">
+  Visual style hint (e.g., `"photorealistic"`, `"illustration"`, `"watercolor"`, `"3d-render"`). Appended to the prompt for the image engine.
+</ParamField>
+
+<ParamField body="aspect_ratio" type="string">
+  Aspect ratio (e.g., `"1:1"`, `"16:9"`, `"9:16"`, `"4:3"`). Defaults to the engine's native ratio.
+</ParamField>
+
+<ParamField body="count" type="integer" default="1">
+  Number of images to generate (1–4).
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://hitheo.ai/api/v1/images \
+  -H "Authorization: Bearer $THEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "A minimalist tech logo, blue and white",
+    "style": "photorealistic",
+    "aspect_ratio": "1:1",
+    "count": 2
+  }'
+```
+
+```typescript SDK
+const res = await theo.images({
+  prompt: "A minimalist tech logo, blue and white",
+  style: "photorealistic",
+  aspect_ratio: "1:1",
+  count: 2,
+});
+
+for (const img of res.images) {
+  console.log(img.url, img.engine);
+}
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique image generation ID (prefixed `img_`).
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+<ResponseField name="images" type="object[]">
+  Array of generated images.
+
+  <Expandable title="Image object">
+    <ResponseField name="url" type="string | null">Hosted image URL.</ResponseField>
+    <ResponseField name="engine" type="string">Theo engine subsystem that produced the image (e.g. `"theo-vision"`).</ResponseField>
+    <ResponseField name="model" type="string">Theo model ID (e.g. `"theo-1-create"`).</ResponseField>
+    <ResponseField name="prompt" type="string">The prompt used (may include style/ratio enrichment).</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  <Expandable title="Usage object">
+    <ResponseField name="cost_cents" type="number">Cost in cents.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "img_abc123",
+  "created": "2026-04-10T12:00:00Z",
+  "images": [
+    {
+      "url": "https://artifacts.hitheo.ai/img/abc123-1.png",
+      "engine": "theo-vision",
+      "model": "theo-1-create",
+      "prompt": "A minimalist tech logo, blue and white Style: photorealistic. Aspect ratio: 1:1."
+    },
+    {
+      "url": "https://artifacts.hitheo.ai/img/abc123-2.png",
+      "engine": "theo-vision",
+      "model": "theo-1-create",
+      "prompt": "A minimalist tech logo, blue and white Style: photorealistic. Aspect ratio: 1:1."
+    }
+  ],
+  "usage": { "cost_cents": 0.08 }
+}
+```
+
+## Errors
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `missing_prompt` | `prompt` is required |
+| 401 | `invalid_api_key` | Missing or invalid API key |
+| 429 | `rate_limit_exceeded` | Too many requests |
