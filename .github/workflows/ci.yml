@@ -19,8 +19,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # npm workspaces builds in alphabetical order (mcp, sdk, telegram, whatsapp)
+      # so the downstream packages try to resolve `@hitheo/sdk` types before the
+      # SDK's dist/ has been produced. Build the SDK explicitly first, then let
+      # the rest of the workspaces compile against its emitted declarations.
+      - name: Build SDK (prerequisite for downstream packages)
+        run: npm run build --workspace=packages/sdk
+
       - name: Build all packages
-        run: npm run build
+        run: npm run build --workspaces --if-present
 
       - name: Test SDK
         run: npm run test --workspace=packages/sdk
