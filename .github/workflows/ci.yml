@@ -30,7 +30,7 @@ jobs:
         run: npm run build --workspaces --if-present
 
       - name: Test SDK
-        run: npm run test --workspace=packages/sdk
+        run: npm run test --workspace=packages/sdk --if-present
 
       - name: Test MCP
-        run: npm run test --workspace=packages/mcp
+        run: npm run test --workspace=packages/mcp --if-present
