@@ -1,6 +1,6 @@
 {
   "name": "@hitheo/mcp",
-  "version": "0.1.6",
+  "version": "0.2.1",
   "description": "MCP server for Theo AI — use Theo inside Cursor, Claude Code, Warp, Windsurf, and any MCP-compatible IDE",
   "author": "Theo AI",
   "type": "module",
@@ -45,15 +45,14 @@
   "homepage": "https://docs.hitheo.ai",
   "bugs": "https://github.com/hitheoai/theoai/issues",
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.2.0",
-    "@hitheo/sdk": "^0.1.0"
+    "@hitheo/sdk": "^0.2.1"
   },
   "devDependencies": {
     "typescript": "^5",

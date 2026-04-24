@@ -11,7 +11,7 @@
  *
  * Environment:
  *   THEO_API_KEY — required, your theo_sk_... API key
- *   THEO_BASE_URL — optional, defaults to https://hitheo.ai
+ *   THEO_BASE_URL — optional, defaults to https://www.hitheo.ai
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -44,7 +44,9 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const baseUrl = process.env.THEO_BASE_URL ?? "https://hitheo.ai";
+// See Theo SDK 0.2.0 changelog for why we default to `www` — the apex
+// domain 307-redirects and strips the `Authorization` header.
+const baseUrl = process.env.THEO_BASE_URL ?? "https://www.hitheo.ai";
 const client = new Theo({ apiKey, baseUrl });
 
 // Load optional theo.config.json from the working directory. JS/TS config

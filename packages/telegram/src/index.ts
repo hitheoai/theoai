@@ -20,6 +20,12 @@
 import { timingSafeEqual } from "node:crypto";
 import { Theo } from "@hitheo/sdk";
 import type { ChatMode, PersonaInput } from "@hitheo/sdk";
+import {
+  createInMemoryChatRateLimiter,
+  createInMemoryMessageDedup,
+  type ChatRateLimiter,
+  type MessageDedup,
+} from "./chat-limiter.js";
 
 // ---------------------------------------------------------------------------
 // Telegram types (minimal subset needed for the adapter)
@@ -114,10 +120,22 @@ export interface TelegramHandlerConfig {
    */
   enableVoice?: boolean;
   /**
-   * Max characters per outbound Telegram message. Telegram's hard limit is
+   * Max chars per outbound Telegram message. Telegram's hard limit is
    * 4096; we default to 4000 to leave headroom for markdown escaping.
    */
   maxChunkChars?: number;
+  /**
+   * Per-chat rate limiter. Defaults to an in-memory 20-messages-per-minute
+   * bucket. Swap for a Redis-backed implementation when running multiple
+   * webhook workers behind a load balancer.
+   */
+  chatRateLimiter?: ChatRateLimiter;
+  /**
+   * Dedup helper that prevents a retried Telegram webhook delivery from
+   * being forwarded to Theo twice. Defaults to an in-memory LRU keyed on
+   * chatId + message_id.
+   */
+  messageDedup?: MessageDedup;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +175,8 @@ export function createTelegramHandler(config: TelegramHandlerConfig) {
 
   const store = config.conversationStore ?? createMemoryStore();
   const maxChunk = config.maxChunkChars ?? DEFAULT_MAX_CHARS;
+  const chatRateLimiter = config.chatRateLimiter ?? createInMemoryChatRateLimiter();
+  const messageDedup = config.messageDedup ?? createInMemoryMessageDedup();
 
   return async function handleUpdate(
     update: TelegramUpdate,
@@ -177,7 +197,28 @@ export function createTelegramHandler(config: TelegramHandlerConfig) {
     const chatId = message.chat.id;
     const chatKey = String(chatId);
 
-    // 3. Built-in commands
+    // 3. Dedup: Telegram retries the webhook if our handler times out, and
+    //    the abuse surface is identical (the same message_id gets
+    //    forwarded to Theo twice). Drop the second delivery silently.
+    const messageKey = String(message.message_id);
+    if (await messageDedup.seen(chatKey, messageKey)) {
+      return;
+    }
+
+    // 4. Per-chat rate limit: refuse the forward when a single chat is
+    //    flooding us. The user sees a one-line hint and the cost stops at
+    //    the local check — no Theo completion is triggered.
+    if (!(await chatRateLimiter.allow(chatKey))) {
+      await sendChunkedMessage(
+        config.telegramToken,
+        chatId,
+        "You're sending messages too quickly. Please slow down and try again in a minute.",
+        maxChunk,
+      );
+      return;
+    }
+
+    // 5. Built-in commands
     let text = message.text ?? message.caption ?? "";
     if (text.startsWith("/")) {
       await handleCommand(text, chatId, config.telegramToken, store, chatKey, maxChunk);
@@ -185,9 +226,8 @@ export function createTelegramHandler(config: TelegramHandlerConfig) {
     }
 
     // 4. Resolve image attachments (photos + image documents) as base64.
-    //    The adapter downloads media inside your deployment and forwards the
-    //    bytes to Theo so Telegram's authenticated file URLs never leave the
-    //    server that holds the bot token.
+    //    We never forward Telegram CDN URLs to Theo because those URLs embed
+    //    the bot token in the path — leaking them would compromise the bot.
     const attachments = await resolveAttachments(message, config, theo);
 
     // 5. Voice / audio — transcribe with Theo STT and append to the prompt.

@@ -18,10 +18,81 @@ export type ChatMode =
 
 export type PersonaInput = "theo" | "none" | { system_prompt: string };
 
+// ---------------------------------------------------------------------------
+// Personality / response style (mirrors the server's per-request overrides)
+// ---------------------------------------------------------------------------
+
+export interface PersonalityConfigInput {
+  traits: {
+    romantic: number;
+    intelligent: number;
+    sarcastic: number;
+    rude: number;
+    funny: number;
+    comedic: number;
+    witty: number;
+  };
+  uncensored_mode: boolean;
+  active_preset_id: string | null;
+}
+
+export interface ResponseStyleInput {
+  format: string;
+  preciseness: string;
+  intent: string;
+}
+
+// ---------------------------------------------------------------------------
+// Attachments + stealth media pins
+// ---------------------------------------------------------------------------
+
+export type CompletionAttachment =
+  | { type: "image_url"; url: string }
+  | { type: "image_base64"; data: string; mime_type: "image/png" | "image/jpeg" | "image/webp" | "image/gif" };
+
+export type TheoImageEngine =
+  | "auto"
+  | "theo-1-create"
+  | "theo-1-photo"
+  | "theo-1-rapid"
+  | "theo-1-design"
+  | "theo-1-studio"
+  | "theo-1-type";
+
+export type TheoImageQuality = "draft" | "standard" | "hd";
+
+export type TheoStealthAspect = "square" | "portrait" | "landscape" | "wide";
+export type TheoStealthDuration = "5s" | "6s" | "10s";
+
+// ---------------------------------------------------------------------------
+// Inline conversation envelope (for stateless callers)
+// ---------------------------------------------------------------------------
+
+export interface InlineConversationMessage {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt?: string;
+  mode?: ChatMode;
+  artifacts?: Array<Record<string, unknown>>;
+}
+
+export interface InlineConversation {
+  id?: string;
+  title?: string;
+  messages: InlineConversationMessage[];
+}
+
 export interface CompletionRequest {
   prompt: string;
   mode?: ChatMode;
-  conversation_id?: string;
+  conversation_id?: string | null;
+  /**
+   * Inline conversation envelope. Use when you don't want to persist a
+   * server-side conversation but still need multi-turn context for
+   * deictic references ("make it longer", "try a different angle").
+   */
+  conversation?: InlineConversation;
   skills?: string[];
   tools?: Array<{
     name: string;
@@ -31,6 +102,14 @@ export interface CompletionRequest {
   model_overrides?: Record<string, string>;
   stream?: boolean;
   persona?: PersonaInput;
+  /** Per-request personality config override. */
+  personality_config?: PersonalityConfigInput;
+  /** Per-request response style override. */
+  response_style?: ResponseStyleInput;
+  /** Set to false to strip Theo personality/branding from this response. */
+  theo_branding?: boolean;
+  /** Set to false to disable the API key's Brand Soul for this request. */
+  brand_soul?: boolean;
   max_iterations?: number;
   temperature?: number;
   metadata?: Record<string, unknown>;
@@ -38,6 +117,31 @@ export interface CompletionRequest {
   format?: "theo" | "openai";
   /** Custom OpenUI component library identifier for GenUI mode. */
   component_library?: string;
+  /** Image attachments for vision analysis. */
+  attachments?: CompletionAttachment[];
+  /** Theo image sub-engine to route through when mode resolves to `image`. */
+  image_model?: TheoImageEngine;
+  /** Image quality tier. Ignored for non-image modes. */
+  image_quality?: TheoImageQuality;
+  /** Stealth model pin. Ignored outside `stealth_*` modes. */
+  stealth_model?: string;
+  /** Stealth image aspect ratio. Ignored outside `stealth_image`. */
+  stealth_aspect?: TheoStealthAspect;
+  /** Stealth video duration. Ignored outside `stealth_video`. */
+  stealth_duration?: TheoStealthDuration;
+}
+
+export interface CompletionUsage {
+  /** Total cost of this completion in cents (markup-inclusive). */
+  cost_cents: number;
+  /** Prompt token count. Always 0 for non-text modes (image, video, tts). */
+  prompt_tokens: number;
+  /** Completion token count. Always 0 for non-text modes. */
+  completion_tokens: number;
+  /** Sum of prompt + completion tokens. */
+  total_tokens: number;
+  /** True when the response came from the semantic cache. */
+  cached?: boolean;
 }
 
 export interface CompletionResponse {
@@ -52,15 +156,74 @@ export interface CompletionResponse {
   tools_used: Array<{ name: string; status: string; description?: string }>;
   artifacts: unknown[];
   follow_ups: Array<{ label: string; prompt: string }>;
-  usage: { cost_cents: number };
+  usage: CompletionUsage;
   metadata: Record<string, unknown> | null;
+  /**
+   * Server-assigned request identifier. Mirrors the `X-Request-Id`
+   * response header. Include this in support tickets to let us look
+   * the request up in logs.
+   */
+  request_id?: string;
+  /** When the response resolves to a persisted server-side conversation. */
+  conversation_id?: string | null;
 }
 
-export interface StreamEvent {
-  type: "meta" | "token" | "tool" | "artifact" | "done" | "error" | "genui_meta";
-  data: unknown;
-  /** Convenience: the token text (only present for type === "token"). */
-  token?: string;
+// ---------------------------------------------------------------------------
+// Streaming event shapes (discriminated union)
+// ---------------------------------------------------------------------------
+
+/** Payload of the first `meta` event on a stream. */
+export interface StreamMetaData {
+  id: string;
+  mode: ChatMode;
+  resolved_mode: ChatMode;
+  model: { id: string; label: string; engine: string };
+  tools: Array<{ name: string; status: string; description?: string }>;
+  artifacts: unknown[];
+  brand?: Record<string, unknown>;
+  routing?: Record<string, unknown>;
+  conversation_id?: string | null;
+  request_id?: string;
+}
+
+/** Payload of an individual `token` event. */
+export interface StreamTokenData {
+  token: string;
+}
+
+/** Payload of a `tool` event. */
+export interface StreamToolData {
+  name: string;
+  status: string;
+  description?: string;
+}
+
+/** Payload of a `skills` event. */
+export interface StreamSkillsData {
+  active: Array<{ id: string; slug: string; name: string; intensity?: number }>;
+}
+
+/** Payload of the final `done` event. */
+export interface StreamDoneData {
+  id: string;
+  content: string;
+  follow_ups: Array<{ label: string; prompt: string }>;
+  structured_output?: { type: string; data: unknown; parse_error?: string };
+  skills_active?: Array<{ id: string; slug: string; name: string; intensity?: number }>;
+  routing?: Record<string, unknown>;
+  usage: CompletionUsage;
+  conversation_id?: string | null;
+  request_id?: string;
+}
+
+/** Payload of the `error` event. Matches the REST error envelope. */
+export interface StreamErrorData {
+  error: {
+    message: string;
+    type: string;
+    code: string;
+    request_id: string | null;
+  };
 }
 
 /** Metadata event emitted when the response uses GenUI mode (OpenUI Lang). */
@@ -70,6 +233,16 @@ export interface GenUIMetaEvent {
   /** Tool names available for the Renderer's toolProvider. */
   tools: string[];
 }
+
+export type StreamEvent =
+  | { type: "meta"; data: StreamMetaData }
+  | { type: "token"; data: StreamTokenData; token: string }
+  | { type: "tool"; data: StreamToolData }
+  | { type: "artifact"; data: Record<string, unknown> }
+  | { type: "genui_meta"; data: GenUIMetaEvent }
+  | { type: "skills"; data: StreamSkillsData }
+  | { type: "done"; data: StreamDoneData }
+  | { type: "error"; data: StreamErrorData };
 
 /** Extended completion response when mode === "genui". */
 export interface GenUICompletionResponse extends CompletionResponse {
@@ -503,6 +676,204 @@ export interface EviConfig {
   metadata?: Record<string, unknown>;
 }
 
+// ---------------------------------------------------------------------------
+// Typed record shapes for list/get endpoints
+// ---------------------------------------------------------------------------
+
+/** Compact conversation metadata returned by `GET /api/v1/conversations`. */
+export interface ConversationSummary {
+  id: string;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastMessage?: string;
+}
+
+/** Message record attached to a conversation detail response. */
+export interface ConversationMessage {
+  id: string;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+  createdAt: string;
+  mode?: ChatMode;
+  resolvedMode?: ChatMode;
+  model?: { id: string; label: string; engine?: string };
+  tools?: Array<{ id?: string; toolName: string; status: string; description?: string }>;
+  artifacts?: unknown[];
+  followUps?: Array<{ label: string; prompt: string }>;
+  status?: string;
+  errorMessage?: string;
+  costCents?: number;
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  messages: ConversationMessage[];
+}
+
+/** Cursor-paginated response from `GET /api/v1/conversations`. */
+export interface ConversationListResponse {
+  conversations: ConversationSummary[];
+  has_more: boolean;
+  next_cursor: string | null;
+}
+
+/** Skill summary returned by `GET /api/v1/skills`. */
+export interface SkillSummary {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string;
+  isPublic: boolean;
+  installCount: number;
+  version: string;
+  toolDefinitions?: unknown;
+  requiredPermissions?: unknown;
+  configSchema?: unknown;
+  setupGuide?: string | null;
+  comingSoon?: boolean;
+  readme?: string | null;
+  authorUserId?: string | null;
+  orgScopeId?: string | null;
+}
+
+/** Tool definition returned by `GET /api/v1/tools`. */
+export interface SdkToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+  permissionLevel: "user" | "org_member" | "org_admin" | "system";
+  requiresApproval: boolean;
+  skillId?: string | null;
+  category?: string;
+}
+
+/** Workflow record returned by `GET /api/v1/workflows`. */
+export interface WorkflowRecord {
+  id: string;
+  userId?: string;
+  name: string;
+  triggerType: "schedule" | "event" | "manual";
+  triggerConfig: Record<string, unknown>;
+  steps: unknown[];
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkflowRunRecord {
+  id: string;
+  workflowId: string;
+  status: "running" | "completed" | "failed" | "paused";
+  stepsCompleted?: number;
+  error?: string | null;
+  startedAt?: string;
+  completedAt?: string | null;
+}
+
+/** Skill submission record for marketplace review. */
+export interface SubmissionRecord {
+  id: string;
+  status: string;
+  reviewTier: string;
+  autoApproved: boolean;
+  skillId?: string | null;
+  manifestVersion?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Published version record for a skill. */
+export interface SkillVersion {
+  id: string;
+  version: string;
+  createdAt: string;
+  changelog?: string | null;
+}
+
+/** Webhook endpoint record. */
+export interface WebhookRecord {
+  id: string;
+  url: string;
+  eventTypes: string[];
+  enabled: boolean;
+  description?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  /** Only returned on creation — never again. Store it immediately. */
+  signingSecret?: string;
+}
+
+/** Webhook delivery attempt record. */
+export interface WebhookDelivery {
+  id: string;
+  webhookId: string;
+  eventType: string;
+  statusCode: number | null;
+  responseBody?: string | null;
+  attemptCount: number;
+  deliveredAt: string | null;
+  error?: string | null;
+}
+
+/** Hook record (autonomous skill trigger). */
+export interface HookRecord {
+  id: string;
+  userId?: string;
+  hookPresetId?: string | null;
+  eventPattern?: string | null;
+  skillSlug: string;
+  enabled: boolean;
+  cooldownMinutes?: number | null;
+  createdAt?: string;
+}
+
+export interface HookExecution {
+  id: string;
+  hookId: string;
+  status: string;
+  eventId?: string;
+  error?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+/** Domain event acknowledgement returned by `POST /api/v1/events`. */
+export interface EventAck {
+  id: string;
+  accepted: boolean;
+  matchedHooks?: number;
+  matchedWebhooks?: number;
+}
+
+/** Aggregated usage report from `GET /api/v1/usage`. */
+export interface UsageReport {
+  period: { from: string; to: string };
+  totals: {
+    requests: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost_cents: number;
+  };
+  by_mode?: Record<string, { requests: number; cost_cents: number }>;
+  by_model?: Record<string, { requests: number; cost_cents: number }>;
+}
+
+/** Result of `theo.verify()` — first-run connectivity + auth diagnostic. */
+export interface VerifyResult {
+  healthy: boolean;
+  authenticated: boolean;
+  baseUrl: string;
+  latencyMs: number;
+  modelCount?: number;
+  version?: string;
+  error?: string;
+  /** Human-friendly remediation hint when `healthy` or `authenticated` is false. */
+  hint?: string;
+}
+
 // --- Client config ---
 
 export interface TheoConfig {
@@ -526,7 +897,13 @@ export class Theo {
 
   constructor(config: TheoConfig) {
     this.apiKey = config.apiKey;
-    this.baseUrl = (config.baseUrl ?? "https://hitheo.ai").replace(/\/$/, "");
+    // Default to the canonical `www` host. The apex `hitheo.ai` currently
+    // 307-redirects to `www`; most HTTP clients (including `fetch`) strip
+    // the `Authorization` header on 3xx responses, which produced a
+    // confusing 401 on the very first call. Hitting `www` directly avoids
+    // the redirect entirely. Set `baseUrl` explicitly if you need to
+    // override (e.g. a staging host).
+    this.baseUrl = (config.baseUrl ?? "https://www.hitheo.ai").replace(/\/$/, "");
     this.timeoutMs = config.timeoutMs ?? 30_000;
     this.maxRetries = config.maxRetries ?? 2;
   }
@@ -538,47 +915,89 @@ export class Theo {
       method: "POST",
       body: JSON.stringify({ ...request, stream: false }),
     });
-    return res.json();
+    const body = (await res.json()) as CompletionResponse;
+    const headerRequestId = res.headers.get("x-request-id");
+    if (headerRequestId && !body.request_id) {
+      body.request_id = headerRequestId;
+    }
+    return body;
   }
 
-  async *stream(request: CompletionRequest): AsyncGenerator<StreamEvent, void, unknown> {
-    const res = await this.fetch("/api/v1/completions", {
-      method: "POST",
-      body: JSON.stringify({ ...request, stream: true }),
-    });
+  /**
+   * Stream a completion via SSE. Returns a `TheoStream` that you can
+   * `for await` over, cancel mid-flight, and read final metadata
+   * (`conversationId`, `usage`, `model`, `requestId`) from once the
+   * stream completes.
+   */
+  stream(request: CompletionRequest): TheoStream {
+    return new TheoStream((signal) =>
+      this.fetch("/api/v1/completions", {
+        method: "POST",
+        body: JSON.stringify({ ...request, stream: true }),
+        signal,
+      }),
+    );
+  }
 
-    if (!res.body) throw new Error("No response body for streaming request.");
+  // ── Verify (first-run connectivity + auth diagnostic) ──
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      let currentEvent = "";
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          currentEvent = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            const event: StreamEvent = {
-              type: currentEvent as StreamEvent["type"],
-              data,
-              token: currentEvent === "token" ? data.token : undefined,
-            };
-            yield event;
-          } catch {
-            // Skip malformed SSE lines
-          }
-        }
+  /**
+   * First-run diagnostic: checks `/health` and an authenticated
+   * `/models` call. Returns a structured diagnosis with actionable
+   * hints on failure (redirect-related 401, invalid API key, wrong
+   * `baseUrl`, network down, etc.).
+   */
+  async verify(): Promise<VerifyResult> {
+    const start = Date.now();
+    let health: HealthResponse | null = null;
+    try {
+      health = await this.health();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        healthy: false,
+        authenticated: false,
+        baseUrl: this.baseUrl,
+        latencyMs: Date.now() - start,
+        error: msg,
+        hint:
+          `Could not reach ${this.baseUrl}/api/v1/health. Check that you can resolve the host from this machine, ` +
+          `and confirm the SDK \`baseUrl\` matches an API-serving origin (not a 3xx redirect target).`,
+      };
+    }
+    try {
+      const models = await this.models();
+      return {
+        healthy: health.status !== "down",
+        authenticated: true,
+        baseUrl: this.baseUrl,
+        latencyMs: Date.now() - start,
+        modelCount: models.length,
+        version: health.version,
+      };
+    } catch (err) {
+      const apiErr = err as TheoApiError;
+      const status = typeof apiErr.status === "number" ? apiErr.status : 0;
+      let hint: string | undefined;
+      if (status === 401) {
+        hint =
+          "Authentication failed. Confirm your API key starts with `theo_sk_` and is not revoked. " +
+          "If the baseUrl 3xx-redirects to another host, some fetch clients strip the Authorization " +
+          "header — use an API-serving host directly (the SDK now defaults to https://www.hitheo.ai).";
+      } else if (status === 403) {
+        hint = "Key authenticated but missing the `completions` scope. Re-issue the key with the required scopes.";
+      } else if (status === 0) {
+        hint = "Network error. Is a proxy, firewall, or VPN blocking outbound HTTPS?";
       }
+      return {
+        healthy: health.status !== "down",
+        authenticated: false,
+        baseUrl: this.baseUrl,
+        latencyMs: Date.now() - start,
+        version: health.version,
+        error: apiErr.message ?? String(err),
+        hint,
+      };
     }
   }
 
@@ -592,10 +1011,10 @@ export class Theo {
 
   // ── Skills ──
 
-  async skills(filter?: "installed" | "marketplace"): Promise<unknown[]> {
+  async skills(filter?: "installed" | "marketplace"): Promise<SkillSummary[]> {
     const params = filter ? `?filter=${encodeURIComponent(filter)}` : "";
     const res = await this.fetch(`/api/v1/skills${params}`);
-    const data = await res.json();
+    const data = (await res.json()) as { skills: SkillSummary[] };
     return data.skills;
   }
 
@@ -621,12 +1040,12 @@ export class Theo {
     description?: string;
     tool_definitions?: unknown[];
     is_public?: boolean;
-  }): Promise<unknown> {
+  }): Promise<SkillSummary> {
     const res = await this.fetch("/api/v1/skills/create", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    const data = await res.json();
+    const data = (await res.json()) as { skill: SkillSummary };
     return data.skill;
   }
 
@@ -634,35 +1053,35 @@ export class Theo {
    * Submit a skill manifest for marketplace review.
    * Returns the submission record with its review status.
    */
-  async submitSkill(manifest: SkillManifest): Promise<unknown> {
+  async submitSkill(manifest: SkillManifest): Promise<SubmissionRecord> {
     const res = await this.fetch("/api/v1/skills/submit", {
       method: "POST",
       body: JSON.stringify({ manifest }),
     });
-    const data = await res.json();
+    const data = (await res.json()) as { submission: SubmissionRecord };
     return data.submission;
   }
 
   /** List the authenticated user's skill submissions. */
-  async submissions(status?: string): Promise<unknown[]> {
+  async submissions(status?: string): Promise<SubmissionRecord[]> {
     const params = status ? `?status=${encodeURIComponent(status)}` : "";
     const res = await this.fetch(`/api/v1/skills/submissions${params}`);
-    const data = await res.json();
+    const data = (await res.json()) as { submissions: SubmissionRecord[] };
     return data.submissions;
   }
 
   /** Get version history for a published skill. */
-  async skillVersions(skillId: string): Promise<unknown[]> {
+  async skillVersions(skillId: string): Promise<SkillVersion[]> {
     const res = await this.fetch(`/api/v1/skills/${encodeURIComponent(skillId)}/versions`);
-    const data = await res.json();
+    const data = (await res.json()) as { versions: SkillVersion[] };
     return data.versions;
   }
 
   // ── Workflows ──
 
-  async workflows(): Promise<unknown[]> {
+  async workflows(): Promise<WorkflowRecord[]> {
     const res = await this.fetch("/api/v1/workflows");
-    const data = await res.json();
+    const data = (await res.json()) as { workflows: WorkflowRecord[] };
     return data.workflows;
   }
 
@@ -671,21 +1090,24 @@ export class Theo {
     triggerType: "schedule" | "event" | "manual";
     triggerConfig?: Record<string, unknown>;
     steps: Array<{ type: string; name: string; config: Record<string, unknown> }>;
-  }): Promise<unknown> {
+  }): Promise<WorkflowRecord> {
     const res = await this.fetch("/api/v1/workflows", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    const data = await res.json();
+    const data = (await res.json()) as { workflow: WorkflowRecord };
     return data.workflow;
   }
 
-  async triggerWorkflow(workflowId: string, triggerData?: Record<string, unknown>): Promise<unknown> {
+  async triggerWorkflow(
+    workflowId: string,
+    triggerData?: Record<string, unknown>,
+  ): Promise<WorkflowRunRecord> {
     const res = await this.fetch(`/api/v1/workflows/${encodeURIComponent(workflowId)}/run`, {
       method: "POST",
       body: JSON.stringify({ triggerData }),
     });
-    const data = await res.json();
+    const data = (await res.json()) as { run: WorkflowRunRecord };
     return data.run;
   }
 
@@ -785,9 +1207,9 @@ export class Theo {
 
   // ── Tools ──
 
-  async tools(): Promise<unknown[]> {
+  async tools(): Promise<SdkToolDefinition[]> {
     const res = await this.fetch("/api/v1/tools");
-    const data = await res.json();
+    const data = (await res.json()) as { tools: SdkToolDefinition[] };
     return data.tools;
   }
 
@@ -877,35 +1299,85 @@ export class Theo {
 
   // ── Conversations ──
 
-  async conversations(): Promise<unknown[]> {
+  async conversations(): Promise<ConversationSummary[]> {
     const res = await this.fetch("/api/v1/conversations");
-    const data = await res.json();
+    const data = (await res.json()) as { conversations: ConversationSummary[] };
     return data.conversations;
   }
 
-  async conversation(id: string): Promise<unknown> {
+  async conversation(id: string): Promise<ConversationDetail> {
     const res = await this.fetch(`/api/v1/conversations/${encodeURIComponent(id)}`);
-    const data = await res.json();
+    const data = (await res.json()) as { conversation: ConversationDetail };
     return data.conversation;
   }
 
   // ── Usage ──
 
-  async usage(params?: { from?: string; to?: string }): Promise<unknown> {
+  /**
+   * Fetch aggregated usage + balance for the authenticated caller.
+   *
+   * When `scope: "org"` is passed, the response reflects the caller's
+   * active organization (team billing pool). Requires the `viewUsage`
+   * permission in that team — otherwise the server returns 403.
+   * Defaults to team scope when the caller is inside an active org and
+   * falls back to personal scope otherwise.
+   */
+  async usage(params?: {
+    from?: string;
+    to?: string;
+    scope?: "user" | "org";
+  }): Promise<UsageReport> {
     const search = new URLSearchParams();
     if (params?.from) search.set("from", params.from);
     if (params?.to) search.set("to", params.to);
+    if (params?.scope) search.set("scope", params.scope);
     const qs = search.toString() ? `?${search.toString()}` : "";
     const res = await this.fetch(`/api/v1/usage${qs}`);
-    return res.json();
+    return (await res.json()) as UsageReport;
+  }
+
+  // ── Billing ──
+
+  /**
+   * Start a credit top-up. When `scope: "org"` is passed (or when the
+   * caller is inside a team with `manageBilling`), the checkout funds
+   * the team credit pool; otherwise it funds the caller's personal
+   * balance. Returns `{ checkout_url, scope }`.
+   */
+  async billingCheckout(input: {
+    amount_cents: number;
+    scope?: "user" | "org";
+    success_url?: string;
+  }): Promise<{ checkout_url: string; scope: "user" | "org" }> {
+    const res = await this.fetch("/api/v1/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    return res.json() as Promise<{ checkout_url: string; scope: "user" | "org" }>;
+  }
+
+  /**
+   * Open the billing portal for the caller (default) or the team when
+   * `scope: "org"` is passed. Team portals require `manageBilling` AND
+   * a funded team payment method (otherwise the server returns 409
+   * `team_billing_setup_required`).
+   */
+  async billingPortal(input?: {
+    scope?: "user" | "org";
+  }): Promise<{ portal_url: string; scope: "user" | "org" }> {
+    const res = await this.fetch("/api/v1/billing/portal", {
+      method: "POST",
+      body: JSON.stringify(input ?? {}),
+    });
+    return res.json() as Promise<{ portal_url: string; scope: "user" | "org" }>;
   }
 
   // ── Webhooks ──
 
   /** List webhooks for the caller's org. */
-  async listWebhooks(): Promise<unknown[]> {
+  async listWebhooks(): Promise<WebhookRecord[]> {
     const res = await this.fetch("/api/v1/webhooks");
-    const data = await res.json();
+    const data = (await res.json()) as { webhooks: WebhookRecord[] };
     return data.webhooks;
   }
 
@@ -915,12 +1387,12 @@ export class Theo {
     event_types: string[];
     secret?: string;
     description?: string;
-  }): Promise<unknown> {
+  }): Promise<WebhookRecord> {
     const res = await this.fetch("/api/v1/webhooks", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    return res.json();
+    return (await res.json()) as WebhookRecord;
   }
 
   /** Update a webhook. */
@@ -947,18 +1419,18 @@ export class Theo {
   }
 
   /** Get recent delivery attempts for a webhook. */
-  async webhookDeliveries(id: string): Promise<unknown[]> {
+  async webhookDeliveries(id: string): Promise<WebhookDelivery[]> {
     const res = await this.fetch(`/api/v1/webhooks/${encodeURIComponent(id)}/deliveries`);
-    const data = await res.json();
+    const data = (await res.json()) as { deliveries: WebhookDelivery[] };
     return data.deliveries;
   }
 
   // ── Hooks (event-driven skill triggers) ──
 
   /** List the user's installed hooks. */
-  async listHooks(): Promise<unknown[]> {
+  async listHooks(): Promise<HookRecord[]> {
     const res = await this.fetch("/api/v1/hooks");
-    const data = await res.json();
+    const data = (await res.json()) as { hooks: HookRecord[] };
     return data.hooks;
   }
 
@@ -968,12 +1440,12 @@ export class Theo {
     event_pattern?: string;
     skill_slug: string;
     cooldown_minutes?: number;
-  }): Promise<unknown> {
+  }): Promise<HookRecord> {
     const res = await this.fetch("/api/v1/hooks", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    return res.json();
+    return (await res.json()) as HookRecord;
   }
 
   /** Update a hook's config, enable/disable, or cooldown. */
@@ -994,9 +1466,9 @@ export class Theo {
   }
 
   /** Get execution history for a hook. */
-  async hookExecutions(id: string): Promise<unknown[]> {
+  async hookExecutions(id: string): Promise<HookExecution[]> {
     const res = await this.fetch(`/api/v1/hooks/${encodeURIComponent(id)}/executions`);
-    const data = await res.json();
+    const data = (await res.json()) as { executions: HookExecution[] };
     return data.executions;
   }
 
@@ -1008,12 +1480,12 @@ export class Theo {
     eventType: string;
     payload: unknown;
     sourceConnector?: string;
-  }): Promise<unknown> {
+  }): Promise<EventAck> {
     const res = await this.fetch("/api/v1/events", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    return res.json();
+    return (await res.json()) as EventAck;
   }
 
   // ── E.V.I. Canvas ──
@@ -1147,11 +1619,15 @@ export class Theo {
         await new Promise((r) => setTimeout(r, delay));
       }
 
+      // Compose a per-attempt timeout signal with any caller-supplied
+      // signal (e.g. TheoStream.cancel()) so both can abort the fetch.
+      const timeoutSignal = AbortSignal.timeout(this.timeoutMs);
+      const signal = init.signal
+        ? anySignal([init.signal, timeoutSignal])
+        : timeoutSignal;
+
       try {
-        const res = await fetch(url, {
-          ...init,
-          signal: AbortSignal.timeout(this.timeoutMs),
-        });
+        const res = await fetch(url, { ...init, signal });
 
         if (res.ok) return res;
 
@@ -1177,6 +1653,9 @@ export class Theo {
           lastError = err;
           // Don't retry client errors
           if (err.status >= 400 && err.status < 500 && err.status !== 429) throw err;
+        } else if ((err as Error).name === "AbortError" && init.signal?.aborted) {
+          // Caller explicitly cancelled — don't retry.
+          throw new TheoApiError(0, "Request was cancelled.", url);
         } else {
           // Network error or timeout - retryable
           lastError = new TheoApiError(0, (err as Error).message, url);
@@ -1219,11 +1698,11 @@ export class EviInstance {
   }
 
   /** Stream a completion through this E.V.I. */
-  async *stream(request: Omit<CompletionRequest, "persona" | "skills" | "tools" | "stream"> & {
+  stream(request: Omit<CompletionRequest, "persona" | "skills" | "tools" | "stream"> & {
     skills?: string[];
     tools?: CompletionRequest["tools"];
-  }): AsyncGenerator<StreamEvent, void, unknown> {
-    yield* this.client.stream(this.mergeRequest({ ...request, stream: true }));
+  }): TheoStream {
+    return this.client.stream(this.mergeRequest({ ...request, stream: true }));
   }
 
   /** Get the current E.V.I. configuration. */
@@ -1347,5 +1826,217 @@ export class TheoApiError extends Error {
       // Body wasn't JSON - keep raw text
     }
     return err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TheoStream — async-iterable streaming handle with cancel + final metadata
+// ---------------------------------------------------------------------------
+
+/**
+ * An active SSE completion stream. Use with `for await` to consume
+ * events, call `cancel()` to abort generation mid-flight, and read
+ * `conversationId` / `usage` / `model` / `requestId` once the stream
+ * has finished (populated from the `meta` and `done` events).
+ *
+ * @example
+ * ```typescript
+ * const stream = theo.stream({ prompt: "Explain TCP" });
+ *
+ * // Cancel after 3s if the user clicks "Stop generating"
+ * setTimeout(() => stream.cancel(), 3000);
+ *
+ * for await (const event of stream) {
+ *   if (event.type === "token") process.stdout.write(event.token);
+ * }
+ *
+ * console.log("Conversation:", stream.conversationId);
+ * console.log("Usage:", stream.usage);
+ * console.log("Request ID:", stream.requestId);
+ * ```
+ */
+export class TheoStream implements AsyncIterable<StreamEvent> {
+  /** Server-assigned request id (from `X-Request-Id` header). */
+  requestId: string | null = null;
+  /** Model info from the `meta` event. */
+  model: { id: string; label: string; engine: string } | null = null;
+  /** Resolved mode (after intent classification / routing). */
+  resolvedMode: ChatMode | null = null;
+  /** Server-side conversation id, if this response resolved to one. */
+  conversationId: string | null = null;
+  /** Final usage (populated after the stream's `done` event). */
+  usage: CompletionUsage | null = null;
+  /** Cumulative text content (populated as tokens stream in). */
+  content = "";
+
+  private readonly requestFactory: (signal: AbortSignal) => Promise<Response>;
+  private readonly abortController = new AbortController();
+  private cancelled = false;
+
+  constructor(requestFactory: (signal: AbortSignal) => Promise<Response>) {
+    this.requestFactory = requestFactory;
+  }
+
+  /**
+   * Abort the underlying HTTP connection, ending the stream. Already-
+   * emitted events are delivered to the consumer; subsequent tokens
+   * will not arrive. Safe to call multiple times.
+   */
+  cancel(): void {
+    if (this.cancelled) return;
+    this.cancelled = true;
+    try {
+      this.abortController.abort();
+    } catch {
+      // AbortController.abort() is spec-safe to call repeatedly; swallow
+      // any environmental oddities (older Node polyfills, etc.).
+    }
+  }
+
+  /** True once `cancel()` has been invoked. */
+  get isCancelled(): boolean {
+    return this.cancelled;
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<StreamEvent> {
+    return this.iterate();
+  }
+
+  private async *iterate(): AsyncGenerator<StreamEvent, void, unknown> {
+    const res = await this.requestFactory(this.abortController.signal);
+    this.requestId = res.headers.get("x-request-id");
+
+    if (!res.body) {
+      throw new TheoApiError(0, "No response body for streaming request.", res.url);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        if (this.cancelled) {
+          await reader.cancel().catch(() => {});
+          break;
+        }
+
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        let currentEvent = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            const raw = line.slice(6);
+            let data: unknown;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              continue; // skip malformed SSE data lines
+            }
+            const event = toStreamEvent(currentEvent, data);
+            if (!event) continue;
+            this.captureMetadata(event);
+            yield event;
+          }
+        }
+      }
+    } finally {
+      try {
+        await reader.cancel();
+      } catch {
+        // reader may already be released
+      }
+    }
+  }
+
+  private captureMetadata(event: StreamEvent): void {
+    switch (event.type) {
+      case "meta": {
+        this.model = event.data.model;
+        this.resolvedMode = event.data.resolved_mode;
+        if (event.data.conversation_id !== undefined) {
+          this.conversationId = event.data.conversation_id ?? null;
+        }
+        if (event.data.request_id) {
+          this.requestId = event.data.request_id;
+        }
+        break;
+      }
+      case "token": {
+        this.content += event.token;
+        break;
+      }
+      case "done": {
+        this.usage = event.data.usage;
+        if (event.data.conversation_id !== undefined) {
+          this.conversationId = event.data.conversation_id ?? null;
+        }
+        if (event.data.request_id) {
+          this.requestId = event.data.request_id;
+        }
+        if (event.data.content) {
+          this.content = event.data.content;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+}
+
+/**
+ * Merge multiple AbortSignals into one that fires when any source fires.
+ * Used to let the SDK combine its per-attempt timeout with a caller-
+ * supplied cancellation signal from `TheoStream.cancel()`.
+ */
+function anySignal(signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController();
+  const onAbort = (reason: unknown) => {
+    if (!controller.signal.aborted) controller.abort(reason);
+    for (const s of signals) s.removeEventListener("abort", handle);
+  };
+  const handle = function (this: AbortSignal) {
+    onAbort(this.reason);
+  };
+  for (const s of signals) {
+    if (s.aborted) {
+      controller.abort(s.reason);
+      break;
+    }
+    s.addEventListener("abort", handle, { once: true });
+  }
+  return controller.signal;
+}
+
+function toStreamEvent(eventName: string, data: unknown): StreamEvent | null {
+  switch (eventName) {
+    case "meta":
+      return { type: "meta", data: data as StreamMetaData };
+    case "token": {
+      const payload = data as StreamTokenData;
+      return { type: "token", data: payload, token: payload.token };
+    }
+    case "tool":
+      return { type: "tool", data: data as StreamToolData };
+    case "artifact":
+      return { type: "artifact", data: data as Record<string, unknown> };
+    case "genui_meta":
+      return { type: "genui_meta", data: data as GenUIMetaEvent };
+    case "skills":
+      return { type: "skills", data: data as StreamSkillsData };
+    case "done":
+      return { type: "done", data: data as StreamDoneData };
+    case "error":
+      return { type: "error", data: data as StreamErrorData };
+    default:
+      return null; // Ignore `thinking` heartbeat + any unknown event types.
   }
 }

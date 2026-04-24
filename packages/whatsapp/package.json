@@ -1,6 +1,6 @@
 {
   "name": "@hitheo/whatsapp",
-  "version": "0.1.6",
+  "version": "0.2.1",
   "description": "WhatsApp Business API adapter for the Theo AI orchestration API",
   "author": "Theo AI",
   "type": "module",
@@ -39,14 +39,13 @@
   "homepage": "https://docs.hitheo.ai",
   "bugs": "https://github.com/hitheoai/theoai/issues",
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "@hitheo/sdk": "^0.1.0"
+    "@hitheo/sdk": "^0.2.1"
   },
   "devDependencies": {
     "typescript": "^5"

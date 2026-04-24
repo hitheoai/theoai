@@ -29,6 +29,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Theo } from "@hitheo/sdk";
 import type { ChatMode, PersonaInput } from "@hitheo/sdk";
+import {
+  createInMemoryChatRateLimiter,
+  createInMemoryMessageDedup,
+  type ChatRateLimiter,
+  type MessageDedup,
+} from "./chat-limiter.js";
 
 // ---------------------------------------------------------------------------
 // WhatsApp Cloud API types (minimal)
@@ -126,6 +132,16 @@ export interface WhatsAppHandlerConfig {
    * to 4000 to leave a small buffer.
    */
   maxChunkChars?: number;
+  /**
+   * Per-chat rate limiter (default: 20 msgs/min, in-memory).
+   * Swap for a Redis-backed implementation in multi-worker deploys.
+   */
+  chatRateLimiter?: ChatRateLimiter;
+  /**
+   * Dedup helper that prevents Meta webhook retries from being forwarded
+   * to Theo twice. Defaults to an in-memory LRU keyed on `from`+`msg.id`.
+   */
+  messageDedup?: MessageDedup;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +206,8 @@ export function createWhatsAppHandler(config: WhatsAppHandlerConfig) {
 
   const store = config.conversationStore ?? createMemoryStore();
   const maxChunk = config.maxChunkChars ?? DEFAULT_MAX_CHARS;
+  const chatRateLimiter = config.chatRateLimiter ?? createInMemoryChatRateLimiter();
+  const messageDedup = config.messageDedup ?? createInMemoryMessageDedup();
 
   return async function handleWebhook(
     payload: WhatsAppWebhookPayload,
@@ -203,6 +221,23 @@ export function createWhatsAppHandler(config: WhatsAppHandlerConfig) {
 
         const messages = change.value.messages ?? [];
         for (const msg of messages) {
+          // Meta retries webhooks on any non-2xx response — drop the
+          // retry so Theo is only called once per unique message.
+          if (await messageDedup.seen(msg.from, msg.id)) continue;
+
+          // Throttle a single sender that's flooding us; client-side cap
+          // keeps the cost off our Theo completion budget.
+          if (!(await chatRateLimiter.allow(msg.from))) {
+            await sendChunkedWhatsAppMessage(
+              config.whatsappToken,
+              config.phoneNumberId,
+              msg.from,
+              "You're sending messages too quickly. Please slow down and try again in a minute.",
+              maxChunk,
+            );
+            continue;
+          }
+
           await handleMessage(msg, theo, config, store, maxChunk);
         }
       }

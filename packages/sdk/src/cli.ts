@@ -14,12 +14,55 @@
  *   theo skill publish          - Submit the skill to the marketplace
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  chmodSync,
+  statSync,
+  unlinkSync,
+} from "fs";
 import { join, resolve, basename } from "path";
 import { homedir, platform } from "os";
 import { execSync } from "child_process";
 import { defineSkill, Theo } from "./index.js";
 import type { SkillManifestInput } from "./index.js";
+
+const CREDENTIALS_DIR = () => join(homedir(), ".theo");
+const CREDENTIALS_PATH = () => join(CREDENTIALS_DIR(), "credentials");
+
+/** Mask all but the prefix + last four characters of an API key. */
+function maskKey(key: string): string {
+  if (key.length <= 12) return `${key.slice(0, 4)}…`;
+  return `${key.slice(0, 12)}…${key.slice(-4)}`;
+}
+
+/**
+ * Ensure `~/.theo/credentials` exists with 0600 permissions. Best-effort on
+ * Windows (which ignores chmod beyond read-only); emits a warning when the
+ * existing perms are wider than 0600 on POSIX.
+ */
+function ensureCredentialsFilePerms(): void {
+  const path = CREDENTIALS_PATH();
+  if (!existsSync(path)) return;
+  try {
+    chmodSync(path, 0o600);
+  } catch {
+    // ignore — best effort
+  }
+  try {
+    const st = statSync(path);
+    const unsafeBits = st.mode & 0o077;
+    if (unsafeBits && platform() !== "win32") {
+      console.warn(
+        `[theo] WARNING: ${path} is readable by other users (mode 0${(st.mode & 0o777).toString(8)}). Tighten with: chmod 600 ${path}`,
+      );
+    }
+  } catch {
+    // ignore
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,8 +81,10 @@ function resolveApiKey(): string {
   // 1. Environment variable
   if (process.env.THEO_API_KEY) return process.env.THEO_API_KEY;
 
-  // 2. Stored credentials file
-  const credPath = join(homedir(), ".theo", "credentials");
+  // 2. Stored credentials file. Re-tighten perms on every load so a key
+  //    that was created with the wrong umask gets narrowed to 0600.
+  ensureCredentialsFilePerms();
+  const credPath = CREDENTIALS_PATH();
   if (existsSync(credPath)) {
     try {
       const data = JSON.parse(readFileSync(credPath, "utf-8"));
@@ -52,7 +97,22 @@ function resolveApiKey(): string {
   return "";
 }
 
-function createClient(apiKey?: string): Theo {
+/** Delete the stored credentials file (best-effort). */
+function deleteStoredCredentials(): boolean {
+  const credPath = CREDENTIALS_PATH();
+  if (!existsSync(credPath)) return false;
+  try {
+    unlinkSync(credPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const DEFAULT_API_BASE_URL = "https://www.hitheo.ai";
+const APEX_API_BASE_URL = "https://hitheo.ai";
+
+function createClient(apiKey?: string, baseUrl?: string): Theo {
   const key = apiKey || resolveApiKey();
   if (!key) {
     error(
@@ -60,8 +120,8 @@ function createClient(apiKey?: string): Theo {
       "  Get a key at https://api.hitheo.ai → API Keys"
     );
   }
-  const baseUrl = process.env.THEO_BASE_URL ?? "https://hitheo.ai";
-  return new Theo({ apiKey: key, baseUrl });
+  const resolvedBaseUrl = baseUrl ?? process.env.THEO_BASE_URL ?? DEFAULT_API_BASE_URL;
+  return new Theo({ apiKey: key, baseUrl: resolvedBaseUrl });
 }
 
 // ---------------------------------------------------------------------------
@@ -333,8 +393,8 @@ async function cmdLogin() {
 
   const existing = resolveApiKey();
   if (existing) {
-    log(`Already authenticated (key starts with ${existing.slice(0, 12)}...)`);
-    log("To use a different key, set THEO_API_KEY or edit ~/.theo/credentials\n");
+    log(`Already authenticated (key ${maskKey(existing)})`);
+    log("To use a different key, set THEO_API_KEY, edit ~/.theo/credentials, or run: theo logout\n");
     return;
   }
 
@@ -358,7 +418,28 @@ async function cmdLogin() {
   log("Or store it permanently:");
   log("  mkdir -p ~/.theo");
   log('  echo \'{"apiKey":"theo_sk_..."}\'  > ~/.theo/credentials');
-  log("  chmod 600 ~/.theo/credentials");
+  log("  chmod 600 ~/.theo/credentials\n");
+  log("To remove stored credentials later: theo logout");
+}
+
+// ---------------------------------------------------------------------------
+// Commands: Logout
+// ---------------------------------------------------------------------------
+
+async function cmdLogout() {
+  const path = CREDENTIALS_PATH();
+  const removed = deleteStoredCredentials();
+  if (removed) {
+    log(`✓ Removed ${path}`);
+  } else {
+    log(`No stored credentials at ${path} (nothing to remove).`);
+  }
+  if (process.env.THEO_API_KEY) {
+    log(
+      "Note: THEO_API_KEY is still set in this shell's environment. " +
+        "Run `unset THEO_API_KEY` to clear it.",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -412,24 +493,68 @@ async function cmdStatus() {
     return;
   }
 
-  log(`API key: ${apiKey.slice(0, 12)}...`);
-  log(`Base URL: ${process.env.THEO_BASE_URL ?? "https://hitheo.ai"}\n`);
+  const configuredBaseUrl = process.env.THEO_BASE_URL ?? DEFAULT_API_BASE_URL;
+  log(`API key: ${maskKey(apiKey)}`);
+  log(`Base URL: ${configuredBaseUrl}\n`);
 
-  const client = createClient(apiKey);
-
-  try {
-    const health = await client.health();
-    log(`Status: ${health.status}`);
-    log(`Version: ${health.version}\n`);
-
-    log("Theo engines:");
-    for (const [name, info] of Object.entries(health.providers)) {
-      log(`  ${name}: ${info.status}`);
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`❌ Connection failed: ${msg}`);
+  // Primary: probe the configured base URL with full health + auth.
+  const primary = await createClient(apiKey, configuredBaseUrl).verify();
+  if (primary.authenticated) {
+    log(`✓ Status: ${primary.healthy ? "healthy" : "degraded"}`);
+    if (primary.version) log(`Version: ${primary.version}`);
+    if (primary.modelCount !== undefined) log(`Models available: ${primary.modelCount}`);
+    log(`Round-trip: ${primary.latencyMs}ms\n`);
+    log("✓ Authentication OK");
+    return;
   }
+
+  log(`❌ Verification failed against ${primary.baseUrl}`);
+  if (primary.error) log(`  Reason: ${primary.error}`);
+  if (primary.hint) log(`  Hint: ${primary.hint}`);
+
+  // If the user kept the old `hitheo.ai` default, cross-check the canonical
+  // `www.hitheo.ai` host. An apex→www redirect silently strips the
+  // Authorization header on some HTTP clients, which is the #1 cause of
+  // first-time 401s — catch it here rather than letting developers guess.
+  if (configuredBaseUrl !== DEFAULT_API_BASE_URL) {
+    log("");
+    log(`Retrying against the canonical host ${DEFAULT_API_BASE_URL}...`);
+    const fallback = await createClient(apiKey, DEFAULT_API_BASE_URL).verify();
+    if (fallback.authenticated) {
+      log(`✓ ${DEFAULT_API_BASE_URL} responded with auth in ${fallback.latencyMs}ms.`);
+      log("");
+      log("⚠  Your configured baseUrl appears to be a redirect target that drops the");
+      log("   Authorization header. Update your SDK config:");
+      log("     new Theo({ apiKey, baseUrl: \"https://www.hitheo.ai\" })");
+      log("   or unset THEO_BASE_URL to use the SDK default.");
+      return;
+    }
+    if (fallback.hint) log(`  Hint: ${fallback.hint}`);
+  } else if (configuredBaseUrl === DEFAULT_API_BASE_URL) {
+    log("");
+    log(`Cross-checking the apex host ${APEX_API_BASE_URL} for a header-stripping redirect...`);
+    const apex = await createClient(apiKey, APEX_API_BASE_URL).verify();
+    if (!apex.authenticated && apex.error) {
+      log(`  ${APEX_API_BASE_URL}: ${apex.error}`);
+      log("  This is expected — the apex 307-redirects to `www` and some HTTP clients");
+      log("  strip the Authorization header on 3xx. Keep using www.hitheo.ai.");
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commands: Verify
+// ---------------------------------------------------------------------------
+
+async function cmdVerify() {
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
+    log("❌ No API key found. Run: theo login");
+    process.exit(1);
+  }
+  const result = await createClient(apiKey).verify();
+  log(JSON.stringify(result, null, 2));
+  if (!result.authenticated) process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -550,17 +675,14 @@ async function skillPublish(dir: string) {
   log(`Submitting "${manifest.name}" v${manifest.version}...`);
 
   try {
-    const result = await client.submitSkill(manifest) as Record<string, unknown>;
-    const status = result.status as string;
-    const autoApproved = result.autoApproved as boolean;
-
-    if (autoApproved) {
+    const result = await client.submitSkill(manifest);
+    if (result.autoApproved) {
       log("✓ Skill auto-approved and published!");
-    } else if (status === "pending_review") {
+    } else if (result.status === "pending_review") {
       log("✓ Submitted for review. You'll be notified when approved.");
       log(`  Review tier: ${result.reviewTier}`);
     } else {
-      log(`Submission status: ${status}`);
+      log(`Submission status: ${result.status}`);
     }
   } catch (err) {
     error(`Publish failed: ${(err as Error).message}`);
@@ -583,6 +705,9 @@ async function main() {
     case "login":
       return cmdLogin();
 
+    case "logout":
+      return cmdLogout();
+
     case "mcp": {
       if (subcommand === "install") {
         const ideIdx = args.indexOf("--ide");
@@ -596,6 +721,9 @@ async function main() {
 
     case "status":
       return cmdStatus();
+
+    case "verify":
+      return cmdVerify();
 
     case "complete": {
       const prompt = args.slice(1).join(" ");
@@ -642,8 +770,10 @@ function printHelp() {
   Setup:
     theo init              Initialize Theo in a project (config + MCP + IDE detection)
     theo login             Authenticate and store API key
+    theo logout            Delete stored API key at ~/.theo/credentials
     theo mcp install       Configure MCP for detected IDEs
-    theo status            Check connection and health
+    theo status            Check connection and health (probes apex + www)
+    theo verify            Machine-readable health + auth diagnostic (JSON)
 
   Usage:
     theo complete "<p>"    Quick AI completion from terminal
